@@ -30,14 +30,7 @@
 
   # https://devenv.sh/basics/
   enterShell = ''
-    echo "Git version:"
-    git --version
-    echo "Node version:"
-    node --version
-    echo "NPM version:"
-    npm --version
-    echo "TypeScript version:"
-    tsc --version
+    echo " ▸ devenv online | node $(node --version) · tsc $(tsc --version | cut -d' ' -f2) · git $(git --version | cut -d' ' -f3)"
   '';
 
   # https://devenv.sh/tasks/

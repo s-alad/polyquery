@@ -1,7 +1,7 @@
 # Devenv
-.devenv*
-devenv.local.nix
-devenv.local.yaml
+.nixdev/.devenv*
+.nixdev/devenv.lock
+.nixdev/devenv.local.nix
 
 # direnv
 .direnv
