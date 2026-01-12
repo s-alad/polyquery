@@ -15,6 +15,7 @@
   # languages.rust.enable = true;
   languages.javascript.enable = true;
   languages.javascript.package = pkgs.nodejs_latest;
+  # languages.javascript.corepack.enable = true;  # enables yarn/pnpm (broken with nodejs_latest)
   languages.typescript.enable = true;
 
   # https://devenv.sh/processes/
@@ -30,7 +31,7 @@
 
   # https://devenv.sh/basics/
   enterShell = ''
-    echo " ▸ devenv online | node $(node --version) · tsc $(tsc --version | cut -d' ' -f2) · git $(git --version | cut -d' ' -f3)"
+    echo " ▸ devenv online ◆ node $(node --version) · tsc $(tsc --version | cut -d' ' -f2) · git $(git --version | cut -d' ' -f3)"
   '';
 
   # https://devenv.sh/tasks/
