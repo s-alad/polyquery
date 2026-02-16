@@ -15,7 +15,7 @@
   # languages.rust.enable = true;
   languages.javascript.enable = true;
   languages.javascript.package = pkgs.nodejs_latest;
-  # languages.javascript.corepack.enable = true;  # enables yarn/pnpm (broken with nodejs_latest)
+  # languages.javascript.corepack.enable = true;
   languages.typescript.enable = true;
   languages.go.enable = true;
 
