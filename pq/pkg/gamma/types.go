@@ -5,6 +5,7 @@ type Market struct {
 	ID               string  `json:"id"`
 	Question         string  `json:"question"`
 	ConditionID      string  `json:"conditionId"`
+	Slug             string  `json:"slug"`
 	VolumeNum        float64 `json:"volumeNum"`
 	LiquidityNum     float64 `json:"liquidityNum"`
 	EndDate          string  `json:"endDate"`
