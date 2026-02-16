@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
@@ -21,9 +22,10 @@ var (
 	minvol      float64
 	limit       int
 	interactive bool
+	resolveWithin time.Duration
 )
 
-var flags = []string{"max-volume", "min-volume", "limit"}
+var flags = []string{"max-volume", "min-volume", "limit", "resolve-within"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -36,6 +38,7 @@ func init() {
 	rcmd.Flags().Float64Var(&minvol, "min-volume", 0, "min volume USD")
 	rcmd.Flags().IntVar(&limit, "limit", 25, "result count")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
+	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 0, "only markets ending within this duration (e.g., 24h)")
 }
 
 func main() {
@@ -50,10 +53,15 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	closed := false
+	var endDateMax string
+	if resolveWithin > 0 {
+		endDateMax = time.Now().UTC().Add(resolveWithin).Format(time.RFC3339)
+	}
 	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
 		VolumeMax: maxvol,
 		VolumeMin: minvol,
 		Closed:    &closed,
+		EndDateMax: endDateMax,
 		Limit:     limit,
 		Order:     "volumeNum",
 	})
@@ -81,7 +89,7 @@ func run(cmd *cobra.Command, args []string) {
 			fmt.Sprintf("$%.0f", m.LiquidityNum),
 			m.EndDate,
 			utils.Truncate(m.Question, 70),
-			utils.TerminalLink("@@@", fmt.Sprintf("https://polymarket.com/market/%s", strings.TrimSpace(m.Slug))),
+			utils.TL("@@@", fmt.Sprintf("https://polymarket.com/market/%s", strings.TrimSpace(m.Slug))),
 		)
 	}
 
@@ -99,11 +107,12 @@ func terminalWidth() int {
 }
 
 func prompt() {
-	var _maxvol, _minvol, _limit string
+	var _maxvol, _minvol, _limit, _resolveWithin string
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewInput().Title("max-volume ($)").Value(&_maxvol).Placeholder("50000"),
 		huh.NewInput().Title("min-volume ($)").Value(&_minvol).Placeholder("0"),
 		huh.NewInput().Title("result-limit").Value(&_limit).Placeholder("10"),
+		huh.NewInput().Title("resolve-within (e.g., 24h)").Value(&_resolveWithin).Placeholder(""),
 	)).WithTheme(huh.ThemeBase())
 	err := form.Run()
 
@@ -119,5 +128,12 @@ func prompt() {
 	}
 	if _limit != "" {
 		fmt.Sscanf(_limit, "%d", &limit)
+	}
+	if _resolveWithin != "" {
+		dur, err := time.ParseDuration(_resolveWithin)
+		if err != nil {
+			log.Fatal("resolve-within invalid", "err", err)
+		}
+		resolveWithin = dur
 	}
 }

@@ -9,8 +9,8 @@ func Truncate(s string, n int) string {
 	return string(r[:n]) + "…"
 }
 
-// TerminalLink returns an OSC 8 hyperlink for terminals that support it.
-func TerminalLink(text, url string) string {
+// TL returns an OSC 8 hyperlink for terminals that support it.
+func TL(text, url string) string {
 	const esc = "\x1b"
 	return esc + "]8;;" + url + esc + "\\" + text + esc + "]8;;" + esc + "\\"
 }
