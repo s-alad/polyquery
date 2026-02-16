@@ -26,9 +26,10 @@
   # services.postgres.enable = true;
 
   # https://devenv.sh/scripts/
-  scripts.hello.exec = ''
-    echo hello from $GREET
-  '';
+  scripts.pqb.exec = "make build";
+  scripts.pq-build-scout.exec = "make build-scout";
+  scripts.pq-build-resolver.exec = "make build-resolver";
+  scripts.pqc.exec = "make clean";
 
   # https://devenv.sh/basics/
   enterShell = ''

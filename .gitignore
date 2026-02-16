@@ -12,3 +12,6 @@
 # resolver
 resolver.db
 config.json
+
+# pq build artifacts
+bin/

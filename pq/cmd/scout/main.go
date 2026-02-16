@@ -3,52 +3,50 @@ package main
 import (
 	"fmt"
 	"os"
-	"strings"
-	"text/tabwriter"
 
 	"github.com/charmbracelet/huh"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/log"
 	"github.com/salad/polyquery/pq/pkg/gamma"
+	"github.com/salad/polyquery/pq/pkg/utils"
 	"github.com/spf13/cobra"
 )
 
 var (
-	maxVol      float64
-	minVol      float64
+	maxvol      float64
+	minvol      float64
 	limit       int
-	closed      bool
 	interactive bool
 )
 
-var rootCmd = &cobra.Command{
+var rcmd = &cobra.Command{
 	Use:   "scout",
-	Short: "Discover Polymarket markets",
+	Short: "scout polymarket",
 	Run:   run,
 }
 
 func init() {
-	rootCmd.Flags().Float64Var(&maxVol, "max-volume", 10000, "max volume USD")
-	rootCmd.Flags().Float64Var(&minVol, "min-volume", 0, "min volume USD")
-	rootCmd.Flags().IntVar(&limit, "limit", 25, "result count")
-	rootCmd.Flags().BoolVar(&closed, "closed", false, "include closed markets")
-	rootCmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "prompt for filters")
+	rcmd.Flags().Float64Var(&maxvol, "max-volume", 10000, "max volume USD")
+	rcmd.Flags().Float64Var(&minvol, "min-volume", 0, "min volume USD")
+	rcmd.Flags().IntVar(&limit, "limit", 25, "result count")
+	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", false, "prompt for filters")
 }
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := rcmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
 
 func run(cmd *cobra.Command, args []string) {
 	if interactive {
-		promptFilters()
+		prompt()
 	}
 
 	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
-		VolumeMax: maxVol,
-		VolumeMin: minVol,
-		Closed:    &closed,
+		VolumeMax: maxvol,
+		VolumeMin: minvol,
 		Limit:     limit,
 		Order:     "volumeNum",
 	})
@@ -56,50 +54,49 @@ func run(cmd *cobra.Command, args []string) {
 		log.Fatal("fetch failed", "err", err)
 	}
 	if len(markets) == 0 {
-		fmt.Println("No markets found.")
+		log.Info("no markets found")
 		return
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 2, ' ', 0)
-	fmt.Fprintf(w, "VOLUME\tLIQUIDITY\tEND DATE\tQUESTION\n")
-	fmt.Fprintf(w, "------\t---------\t--------\t--------\n")
+	t := table.New().
+		Border(lipgloss.RoundedBorder()).
+		Headers("VOLUME", "LIQUIDITY", "END DATE", "QUESTION")
+
 	for _, m := range markets {
 		end := ""
 		if len(m.EndDate) >= 10 {
 			end = m.EndDate[:10]
 		}
-		fmt.Fprintf(w, "$%.0f\t$%.0f\t%s\t%s\n", m.VolumeNum, m.LiquidityNum, end, truncate(m.Question, 70))
+		t.Row(
+			fmt.Sprintf("$%.0f", m.VolumeNum),
+			fmt.Sprintf("$%.0f", m.LiquidityNum),
+			end,
+			utils.Truncate(m.Question, 70),
+		)
 	}
-	w.Flush()
-	fmt.Fprintf(os.Stderr, "\n%d markets (volume $%.0f–$%.0f)\n", len(markets), minVol, maxVol)
+
+	fmt.Println(t.Render())
+	log.Info("markets summary", "count", len(markets), "volume_min", minvol, "volume_max", maxvol)
 }
 
-func promptFilters() {
-	var maxVolStr, minVolStr, limitStr string
+func prompt() {
+	var maxvolStr, minvolStr, limitStr string
 	err := huh.NewForm(huh.NewGroup(
-		huh.NewInput().Title("Max volume ($)").Value(&maxVolStr).Placeholder("10000"),
-		huh.NewInput().Title("Min volume ($)").Value(&minVolStr).Placeholder("0"),
+		huh.NewInput().Title("Max volume ($)").Value(&maxvolStr).Placeholder("10000"),
+		huh.NewInput().Title("Min volume ($)").Value(&minvolStr).Placeholder("0"),
 		huh.NewInput().Title("Result limit").Value(&limitStr).Placeholder("25"),
-		huh.NewConfirm().Title("Include closed markets?").Value(&closed),
 	)).Run()
+
 	if err != nil {
 		log.Fatal("prompt failed", "err", err)
 	}
-	if maxVolStr != "" {
-		fmt.Sscanf(maxVolStr, "%f", &maxVol)
+	if maxvolStr != "" {
+		fmt.Sscanf(maxvolStr, "%f", &maxvol)
 	}
-	if minVolStr != "" {
-		fmt.Sscanf(minVolStr, "%f", &minVol)
+	if minvolStr != "" {
+		fmt.Sscanf(minvolStr, "%f", &minvol)
 	}
 	if limitStr != "" {
 		fmt.Sscanf(limitStr, "%d", &limit)
 	}
-}
-
-func truncate(s string, n int) string {
-	s = strings.ReplaceAll(s, "\n", " ")
-	if len(s) <= n {
-		return s
-	}
-	return s[:n-3] + "..."
 }
