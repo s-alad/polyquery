@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/huh"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
 	"github.com/charmbracelet/log"
+	"github.com/salad/polyquery/pq/pkg/chain"
 	"github.com/salad/polyquery/pq/pkg/gamma"
 	"github.com/salad/polyquery/pq/pkg/utils"
 	"github.com/samber/lo"
@@ -18,14 +21,16 @@ import (
 )
 
 var (
-	maxvol      float64
-	minvol      float64
-	limit       int
-	interactive bool
+	maxvol        float64
+	minvol        float64
+	limit         int
+	interactive   bool
 	resolveWithin time.Duration
+	proposable    bool
+	rpcURL        string
 )
 
-var flags = []string{"max-volume", "min-volume", "limit", "resolve-within"}
+var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -39,6 +44,8 @@ func init() {
 	rcmd.Flags().IntVar(&limit, "limit", 25, "result count")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
 	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 0, "only markets ending within this duration (e.g., 24h)")
+	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
+	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for sports/MOOV2 UMA links)")
 }
 
 func main() {
@@ -68,10 +75,19 @@ func run(cmd *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatal("fetch failed", "err", err)
 	}
+	if proposable {
+		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
+			return m.UmaResolutionStatus == ""
+		})
+	}
+
 	if len(markets) == 0 {
 		log.Info("no markets found")
 		return
 	}
+
+	// Fetch UMA links concurrently
+	umaLinks := fetchUmaLinks(markets)
 
 	t := table.New().
 		Border(lipgloss.RoundedBorder()).
@@ -79,22 +95,55 @@ func run(cmd *cobra.Command, args []string) {
 		StyleFunc(func(_, _ int) lipgloss.Style {
 			return lipgloss.NewStyle().Padding(0, 1)
 		}).
-		Headers("VOL", "LIQ", "END", "QUE", "LNK")
+		Headers("VOL", "LIQ", "END", "QUE", "LNK", "UMA")
 
 	t.Width(terminalWidth())
 
-	for _, m := range markets {
+	for i, m := range markets {
+		umaLnk := "-"
+		if umaLinks[i] != "" {
+			umaLnk = utils.TL("propose", umaLinks[i])
+		}
 		t.Row(
 			fmt.Sprintf("$%.0f", m.VolumeNum),
 			fmt.Sprintf("$%.0f", m.LiquidityNum),
 			m.EndDate,
 			utils.Truncate(m.Question, 70),
 			utils.TL("@@@", fmt.Sprintf("https://polymarket.com/market/%s", strings.TrimSpace(m.Slug))),
+			umaLnk,
 		)
 	}
 
 	fmt.Println(t.Render())
 	log.Info("markets summary", "count", len(markets), "volume_min", minvol, "volume_max", maxvol)
+}
+
+func fetchUmaLinks(markets []gamma.Market) []string {
+	uma := chain.NewUmaClient(rpcURL)
+	defer uma.Close()
+
+	links := make([]string, len(markets))
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	for i, m := range markets {
+		if m.ResolvedBy == "" {
+			continue
+		}
+		wg.Add(1)
+		go func(idx int, m gamma.Market) {
+			defer wg.Done()
+			link, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID)
+			if err != nil {
+				log.Debug("uma link failed", "market", m.ID, "err", err)
+				return
+			}
+			links[idx] = link
+		}(i, m)
+	}
+	wg.Wait()
+	return links
 }
 
 func terminalWidth() int {
@@ -106,13 +155,16 @@ func terminalWidth() int {
 	return width
 }
 
+
 func prompt() {
 	var _maxvol, _minvol, _limit, _resolveWithin string
+	var _proposable bool
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewInput().Title("max-volume ($)").Value(&_maxvol).Placeholder("50000"),
 		huh.NewInput().Title("min-volume ($)").Value(&_minvol).Placeholder("0"),
 		huh.NewInput().Title("result-limit").Value(&_limit).Placeholder("10"),
 		huh.NewInput().Title("resolve-within (e.g., 24h)").Value(&_resolveWithin).Placeholder(""),
+		huh.NewConfirm().Title("proposable only?").Value(&_proposable),
 	)).WithTheme(huh.ThemeBase())
 	err := form.Run()
 
@@ -136,4 +188,5 @@ func prompt() {
 		}
 		resolveWithin = dur
 	}
+	proposable = _proposable
 }

@@ -41,7 +41,7 @@ polyquery/
 │   │   ├── gamma/             # Gamma API client (shared by scout + resolver)
 │   │   ├── resolve/           # Resolver interface + registry
 │   │   ├── store/             # SQLite via SQLC (schema.sql, queries.sql, generated code)
-│   │   ├── chain/             # go-ethereum, abigen bindings (TODO)
+│   │   ├── chain/             # go-ethereum: UMA link lookup, future abigen bindings
 │   │   ├── api/               # JSON API for dashboard
 │   │   └── pipeline/          # Poller + resolver goroutines
 │   └── resolvers/             # Concrete resolver implementations
@@ -177,7 +177,7 @@ Chain-related config (`rpc_url`, `private_key_path`) will be added in step 9.
 6. ~~`resolvers/nba.go` — first concrete resolver (stub)~~ ✓
 7. ~~End-to-end dry run: poll → resolve → API → approve~~ ✓
 8. `dash/` — Svelte frontend consuming the API
-9. `pkg/chain/` — abigen bindings, ProposePrice, Settle
+9. ~~`pkg/chain/` — UmaLink lookup via subgraph + RPC fallback~~ ✓ (abigen bindings for ProposePrice/Settle still TODO)
 10. Wire chain into pipeline, production dry run with `dry_run=true`
 11. Implement real NBA resolver (call sports API)
 
@@ -193,3 +193,5 @@ Track plan revisions here so stale decisions don't poison future sessions.
 | 2026-02-15 | Moved SQLC source (schema.sql, queries.sql) into `pkg/store/`, eliminated `sql/` dir. Single source of truth. |
 | 2026-02-15 | Adopted Cobra (CLI), Charm libs (huh, log), Fiber (HTTP), Air (dev reload). Trimmed gamma types to used fields only, go-querystring for query params. |
 | 2026-02-15 | Bloat pass: removed Tags/Description from resolve.Market, removed extractTagsFromQuestion, removed unused Registry.All(), embedded Config in Pipeline, removed premature config fields (rpc_url, dry_run, private_key_path), simplified scout to single root command. |
+| 2026-02-15 | Built pkg/chain/uma.go: UmaLink lookup via QuestionInitialized event logs on Polygon. Chunks 10K blocks to respect free-tier RPC limits. Searches known adapter contracts (v2, v3, sports). Uses resolvedBy field from Gamma to target exact adapter. |
+| 2026-02-16 | Rewrote pkg/chain/uma.go: dual-path lookup. Subgraph (instant) for v2/v3 adapters via UMA Goldsky subgraph, RPC log scan fallback for sports/MOOV2 adapter. Discovered Gamma `id` == ancillary `market_id` for cross-referencing. Added `--proposable` flag to scout (default true). See `docs/uma/uma-link-lookup.md`. |

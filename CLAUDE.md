@@ -45,7 +45,8 @@ docs/
 │   ├── polymarket-apis.md    # Complete reference of all 7 Polymarket APIs
 │   └── polymarket-llms.txt   # Full doc URL index (append .md for raw content)
 ├── uma/
-│   └── uma-resolution.md     # UMA oracle process, contracts, economics
+│   ├── uma-resolution.md     # UMA oracle process, contracts, economics
+│   └── uma-link-lookup.md    # How we find UMA propose URLs (subgraph + RPC fallback)
 └── plans/
     └── resolution-pipeline.md  # Architecture plan for the resolution pipeline
 ```

@@ -4,6 +4,7 @@ package gamma
 type Market struct {
 	ID                  string  `json:"id"`
 	Question            string  `json:"question"`
+	QuestionID          string  `json:"questionID"`
 	ConditionID         string  `json:"conditionId"`
 	Slug                string  `json:"slug"`
 	VolumeNum           float64 `json:"volumeNum"`
@@ -15,6 +16,7 @@ type Market struct {
 	UmaResolutionStatus string  `json:"umaResolutionStatus"`
 	UmaBond             string  `json:"umaBond"`
 	UmaReward           string  `json:"umaReward"`
+	ResolvedBy          string  `json:"resolvedBy"`
 }
 
 // https://docs.polymarket.com/api-reference/markets/list-markets.md
