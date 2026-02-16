@@ -1,0 +1,199 @@
+# Polymarket API Documentation Index
+
+Source: https://docs.polymarket.com/llms.txt
+
+Use the `.md` suffix on any URL to get raw markdown content suitable for LLM consumption.
+Example: https://docs.polymarket.com/quickstart/overview.md
+
+---
+
+## Quickstart
+
+- [Developer Quickstart](https://docs.polymarket.com/quickstart/overview.md)
+- [Fetching Market Data](https://docs.polymarket.com/quickstart/fetching-data.md)
+- [Placing Your First Order](https://docs.polymarket.com/quickstart/first-order.md)
+- [API Rate Limits](https://docs.polymarket.com/quickstart/introduction/rate-limits.md)
+- [Endpoints Reference](https://docs.polymarket.com/quickstart/reference/endpoints.md)
+- [Glossary](https://docs.polymarket.com/quickstart/reference/glossary.md)
+- [WSS Quickstart](https://docs.polymarket.com/quickstart/websocket/WSS-Quickstart.md)
+
+## Gamma Markets API (Market Discovery)
+
+- [Overview](https://docs.polymarket.com/developers/gamma-markets-api/overview.md)
+- [Gamma Structure](https://docs.polymarket.com/developers/gamma-markets-api/gamma-structure.md)
+- [How to Fetch Markets](https://docs.polymarket.com/developers/gamma-markets-api/fetch-markets-guide.md)
+
+## CLOB API (Trading)
+
+### Core
+- [CLOB Introduction](https://docs.polymarket.com/developers/CLOB/introduction.md)
+- [CLOB Quickstart](https://docs.polymarket.com/developers/CLOB/quickstart.md)
+- [Authentication](https://docs.polymarket.com/developers/CLOB/authentication.md)
+- [Geographic Restrictions](https://docs.polymarket.com/developers/CLOB/geoblock.md)
+
+### Client Methods
+- [Methods Overview](https://docs.polymarket.com/developers/CLOB/clients/methods-overview.md)
+- [Public Methods](https://docs.polymarket.com/developers/CLOB/clients/methods-public.md)
+- [L1 Methods (Signer)](https://docs.polymarket.com/developers/CLOB/clients/methods-l1.md)
+- [L2 Methods (Auth)](https://docs.polymarket.com/developers/CLOB/clients/methods-l2.md)
+- [Builder Methods](https://docs.polymarket.com/developers/CLOB/clients/methods-builder.md)
+
+### Orders
+- [Orders Overview](https://docs.polymarket.com/developers/CLOB/orders/orders.md)
+- [Place Single Order](https://docs.polymarket.com/developers/CLOB/orders/create-order.md)
+- [Place Multiple Orders (Batching)](https://docs.polymarket.com/developers/CLOB/orders/create-order-batch.md)
+- [Cancel Orders](https://docs.polymarket.com/developers/CLOB/orders/cancel-orders.md)
+- [Get Order](https://docs.polymarket.com/developers/CLOB/orders/get-order.md)
+- [Get Active Orders](https://docs.polymarket.com/developers/CLOB/orders/get-active-order.md)
+- [Onchain Order Info](https://docs.polymarket.com/developers/CLOB/orders/onchain-order-info.md)
+- [Check Order Reward Scoring](https://docs.polymarket.com/developers/CLOB/orders/check-scoring.md)
+
+### Trades
+- [Trades Overview](https://docs.polymarket.com/developers/CLOB/trades/trades-overview.md)
+- [Get Trades](https://docs.polymarket.com/developers/CLOB/trades/trades.md)
+
+### WebSocket
+- [WSS Overview](https://docs.polymarket.com/developers/CLOB/websocket/wss-overview.md)
+- [WSS Authentication](https://docs.polymarket.com/developers/CLOB/websocket/wss-auth.md)
+- [Market Channel](https://docs.polymarket.com/developers/CLOB/websocket/market-channel.md)
+- [User Channel](https://docs.polymarket.com/developers/CLOB/websocket/user-channel.md)
+
+### Other CLOB
+- [Historical Timeseries Data](https://docs.polymarket.com/developers/CLOB/timeseries.md)
+
+## REST API Reference (Gamma + Data API endpoints)
+
+### Events
+- [List Events](https://docs.polymarket.com/api-reference/events/list-events.md)
+- [Get Event by ID](https://docs.polymarket.com/api-reference/events/get-event-by-id.md)
+- [Get Event by Slug](https://docs.polymarket.com/api-reference/events/get-event-by-slug.md)
+- [Get Event Tags](https://docs.polymarket.com/api-reference/events/get-event-tags.md)
+
+### Markets
+- [List Markets](https://docs.polymarket.com/api-reference/markets/list-markets.md)
+- [Get Market by ID](https://docs.polymarket.com/api-reference/markets/get-market-by-id.md)
+- [Get Market by Slug](https://docs.polymarket.com/api-reference/markets/get-market-by-slug.md)
+- [Get Market Tags by ID](https://docs.polymarket.com/api-reference/markets/get-market-tags-by-id.md)
+
+### Series
+- [List Series](https://docs.polymarket.com/api-reference/series/list-series.md)
+- [Get Series by ID](https://docs.polymarket.com/api-reference/series/get-series-by-id.md)
+
+### Tags
+- [List Tags](https://docs.polymarket.com/api-reference/tags/list-tags.md)
+- [Get Tag by ID](https://docs.polymarket.com/api-reference/tags/get-tag-by-id.md)
+- [Get Tag by Slug](https://docs.polymarket.com/api-reference/tags/get-tag-by-slug.md)
+- [Get Tags Related to Tag ID](https://docs.polymarket.com/api-reference/tags/get-tags-related-to-a-tag-id.md)
+- [Get Tags Related to Tag Slug](https://docs.polymarket.com/api-reference/tags/get-tags-related-to-a-tag-slug.md)
+- [Get Related Tags by Tag ID](https://docs.polymarket.com/api-reference/tags/get-related-tags-relationships-by-tag-id.md)
+- [Get Related Tags by Tag Slug](https://docs.polymarket.com/api-reference/tags/get-related-tags-relationships-by-tag-slug.md)
+
+### Pricing
+- [Get Market Price](https://docs.polymarket.com/api-reference/pricing/get-market-price.md)
+- [Get Midpoint Price](https://docs.polymarket.com/api-reference/pricing/get-midpoint-price.md)
+- [Get Multiple Market Prices](https://docs.polymarket.com/api-reference/pricing/get-multiple-market-prices.md)
+- [Get Multiple Market Prices by Request](https://docs.polymarket.com/api-reference/pricing/get-multiple-market-prices-by-request.md)
+- [Get Price History](https://docs.polymarket.com/api-reference/pricing/get-price-history-for-a-traded-token.md)
+
+### Order Book
+- [Get Order Book Summary](https://docs.polymarket.com/api-reference/orderbook/get-order-book-summary.md)
+- [Get Multiple Order Book Summaries](https://docs.polymarket.com/api-reference/orderbook/get-multiple-order-books-summaries-by-request.md)
+
+### Spreads
+- [Get Bid-Ask Spreads](https://docs.polymarket.com/api-reference/spreads/get-bid-ask-spreads.md)
+
+### Core (Data API)
+- [Get Current Positions](https://docs.polymarket.com/api-reference/core/get-current-positions-for-a-user.md)
+- [Get Closed Positions](https://docs.polymarket.com/api-reference/core/get-closed-positions-for-a-user.md)
+- [Get Top Holders](https://docs.polymarket.com/api-reference/core/get-top-holders-for-markets.md)
+- [Get Total Position Value](https://docs.polymarket.com/api-reference/core/get-total-value-of-a-users-positions.md)
+- [Get Trader Leaderboard](https://docs.polymarket.com/api-reference/core/get-trader-leaderboard-rankings.md)
+- [Get Trades](https://docs.polymarket.com/api-reference/core/get-trades-for-a-user-or-markets.md)
+- [Get User Activity](https://docs.polymarket.com/api-reference/core/get-user-activity.md)
+
+### Comments
+- [List Comments](https://docs.polymarket.com/api-reference/comments/list-comments.md)
+- [Get Comments by Comment ID](https://docs.polymarket.com/api-reference/comments/get-comments-by-comment-id.md)
+- [Get Comments by User Address](https://docs.polymarket.com/api-reference/comments/get-comments-by-user-address.md)
+
+### Sports
+- [Get Sports Metadata](https://docs.polymarket.com/api-reference/sports/get-sports-metadata-information.md)
+- [Get Valid Sports Market Types](https://docs.polymarket.com/api-reference/sports/get-valid-sports-market-types.md)
+- [List Teams](https://docs.polymarket.com/api-reference/sports/list-teams.md)
+
+### Builders
+- [Get Aggregated Builder Leaderboard](https://docs.polymarket.com/api-reference/builders/get-aggregated-builder-leaderboard.md)
+- [Get Daily Builder Volume](https://docs.polymarket.com/api-reference/builders/get-daily-builder-volume-time-series.md)
+
+### Profiles & Search
+- [Get Public Profile](https://docs.polymarket.com/api-reference/profiles/get-public-profile-by-wallet-address.md)
+- [Search Markets, Events, Profiles](https://docs.polymarket.com/api-reference/search/search-markets-events-and-profiles.md)
+
+### Bridge
+- [Create Deposit Addresses](https://docs.polymarket.com/api-reference/bridge/create-deposit-addresses.md)
+- [Create Withdrawal Addresses](https://docs.polymarket.com/api-reference/bridge/create-withdrawal-addresses.md)
+- [Get a Quote](https://docs.polymarket.com/api-reference/bridge/get-a-quote.md)
+- [Get Supported Assets](https://docs.polymarket.com/api-reference/bridge/get-supported-assets.md)
+- [Get Transaction Status](https://docs.polymarket.com/api-reference/bridge/get-transaction-status.md)
+
+### Misc
+- [Download Accounting Snapshot](https://docs.polymarket.com/api-reference/misc/download-an-accounting-snapshot-zip-of-csvs.md)
+- [Get Live Volume for Event](https://docs.polymarket.com/api-reference/misc/get-live-volume-for-an-event.md)
+- [Get Open Interest](https://docs.polymarket.com/api-reference/misc/get-open-interest.md)
+- [Get Total Markets Traded](https://docs.polymarket.com/api-reference/misc/get-total-markets-a-user-has-traded.md)
+
+### Health Checks
+- [Data API Health Check](https://docs.polymarket.com/api-reference/data-api-status/data-api-health-check.md)
+- [Gamma API Health Check](https://docs.polymarket.com/api-reference/gamma-status/gamma-api-health-check.md)
+
+## CTF (Conditional Token Framework)
+
+- [Overview](https://docs.polymarket.com/developers/CTF/overview.md)
+- [Splitting USDC](https://docs.polymarket.com/developers/CTF/split.md)
+- [Merging Tokens](https://docs.polymarket.com/developers/CTF/merge.md)
+- [Redeeming Tokens](https://docs.polymarket.com/developers/CTF/redeem.md)
+- [Deployment & Resources](https://docs.polymarket.com/developers/CTF/deployment-resources.md)
+
+## RTDS (Real-Time Data Socket)
+
+- [Overview](https://docs.polymarket.com/developers/RTDS/RTDS-overview.md)
+- [Comments](https://docs.polymarket.com/developers/RTDS/RTDS-comments.md)
+- [Crypto Prices](https://docs.polymarket.com/developers/RTDS/RTDS-crypto-prices.md)
+
+## Builders Program
+
+- [Introduction](https://docs.polymarket.com/developers/builders/builder-intro.md)
+- [Builder Profile & Keys](https://docs.polymarket.com/developers/builders/builder-profile.md)
+- [Builder Tiers](https://docs.polymarket.com/developers/builders/builder-tiers.md)
+- [Order Attribution](https://docs.polymarket.com/developers/builders/order-attribution.md)
+- [Relayer Client](https://docs.polymarket.com/developers/builders/relayer-client.md)
+- [Blockchain Data Resources](https://docs.polymarket.com/developers/builders/blockchain-data-resources.md)
+- [Examples](https://docs.polymarket.com/developers/builders/examples.md)
+
+## Market Makers
+
+- [Introduction](https://docs.polymarket.com/developers/market-makers/introduction.md)
+- [Setup](https://docs.polymarket.com/developers/market-makers/setup.md)
+- [Trading](https://docs.polymarket.com/developers/market-makers/trading.md)
+- [Inventory Management](https://docs.polymarket.com/developers/market-makers/inventory.md)
+- [Data Feeds](https://docs.polymarket.com/developers/market-makers/data-feeds.md)
+- [Liquidity Rewards](https://docs.polymarket.com/developers/market-makers/liquidity-rewards.md)
+- [Maker Rebates Program](https://docs.polymarket.com/developers/market-makers/maker-rebates-program.md)
+
+## Sports WebSocket
+
+- [Overview](https://docs.polymarket.com/developers/sports-websocket/overview.md)
+- [Quickstart](https://docs.polymarket.com/developers/sports-websocket/quickstart.md)
+- [Message Format](https://docs.polymarket.com/developers/sports-websocket/message-format.md)
+
+## Other Developer Docs
+
+- [Resolution (UMA)](https://docs.polymarket.com/developers/resolution/UMA.md)
+- [Negative Risk Overview](https://docs.polymarket.com/developers/neg-risk/overview.md)
+- [Bridge Overview](https://docs.polymarket.com/developers/misc-endpoints/bridge-overview.md)
+- [Proxy Wallet](https://docs.polymarket.com/developers/proxy-wallet.md)
+- [Subgraph Overview](https://docs.polymarket.com/developers/subgraph/overview.md)
+
+## Changelog
+
+- [Polymarket Changelog](https://docs.polymarket.com/changelog/changelog.md)

@@ -1,4 +1,0 @@
-- [x] init
-- [ ] query by delta
-- [ ] query by size
-- [ ] drag and drop queries 

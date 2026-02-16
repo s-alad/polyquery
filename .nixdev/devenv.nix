@@ -5,7 +5,7 @@
   env.GREET = "devenv";
 
   # https://devenv.sh/packages/
-  packages = [ 
+  packages = [
     pkgs.git
     pkgs.nodejs_latest
     pkgs.nodePackages.typescript
@@ -17,6 +17,7 @@
   languages.javascript.package = pkgs.nodejs_latest;
   # languages.javascript.corepack.enable = true;  # enables yarn/pnpm (broken with nodejs_latest)
   languages.typescript.enable = true;
+  languages.go.enable = true;
 
   # https://devenv.sh/processes/
   # processes.dev.exec = "${lib.getExe pkgs.watchexec} -n -- ls -la";
@@ -31,7 +32,7 @@
 
   # https://devenv.sh/basics/
   enterShell = ''
-    echo " ▸ devenv online ◆ node $(node --version) · tsc $(tsc --version | cut -d' ' -f2) · git $(git --version | cut -d' ' -f3)"
+    echo " ▸ devenv online ◆ node $(node --version) · tsc $(tsc --version | cut -d' ' -f2) · go $(go version | cut -d' ' -f3 | sed 's/go//') · git $(git --version | cut -d' ' -f3)"
   '';
 
   # https://devenv.sh/tasks/
