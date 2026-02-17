@@ -28,11 +28,14 @@ var questionInitSig = crypto.Keccak256Hash(
 	[]byte("QuestionInitialized(bytes32,uint256,address,bytes,address,uint256,uint256)"),
 )
 
-// OOV2 adapters — indexed by UMA's Goldsky subgraph.
+// OOV2 adapters — indexed by UMA's Goldsky subgraph. Permissionless (no whitelist).
 var oov2Adapters = map[string]bool{
 	"0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74": true, // v2
 	"0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d": true, // v3
 }
+
+// IsOOV2 returns true if the adapter uses OOV2 (permissionless, no whitelist needed).
+func IsOOV2(adapter string) bool { return oov2Adapters[strings.ToLower(adapter)] }
 
 type UmaClient struct {
 	http   *http.Client

@@ -28,6 +28,7 @@ var (
 	resolveWithin time.Duration
 	proposable    bool
 	rpcURL        string
+	openOnly      bool
 )
 
 var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable"}
@@ -46,6 +47,7 @@ func init() {
 	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 0, "only markets ending within this duration (e.g., 24h)")
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
 	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for sports/MOOV2 UMA links)")
+	rcmd.Flags().BoolVar(&openOnly, "open", false, "only show OOV2 markets (no whitelist needed)")
 }
 
 func main() {
@@ -78,6 +80,11 @@ func run(cmd *cobra.Command, args []string) {
 	if proposable {
 		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
 			return m.UmaResolutionStatus == ""
+		})
+	}
+	if openOnly {
+		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
+			return chain.IsOOV2(m.ResolvedBy)
 		})
 	}
 
