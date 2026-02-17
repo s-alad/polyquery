@@ -77,6 +77,20 @@ function proposePrice(
 | Risk if wrong | -$750 |
 | Liveness period | 2 hours |
 
+## Target Markets
+
+### Call of Duty League (CDL)
+- **Primary target** — frequent matches, clear outcomes, fast verification
+- Uses **sports adapter** (`0x6507...`) → MOOV2 oracle
+- Match results: `https://callofdutyleague.com/en-us/match/{id}`
+- Market types: BO5 series winners, individual game winners
+- Bond: $500 USDC, reward: $2 per correct proposal
+
+### Other Targets
+- NBA/sports scores — verifiable via public APIs
+- Weather markets — verifiable via weather services
+- One-off verifiable events — dates, prices, outcomes with clear sources
+
 ## Results Since MOOV2 Launch (Sept 2025)
 - Incorrect proposals: **down 59%**
 - Total disputes: **down 68%**

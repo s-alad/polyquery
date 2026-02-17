@@ -65,12 +65,12 @@ func run(cmd *cobra.Command, args []string) {
 		endDateMax = time.Now().UTC().Add(resolveWithin).Format(time.RFC3339)
 	}
 	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
-		VolumeMax: maxvol,
-		VolumeMin: minvol,
-		Closed:    &closed,
+		VolumeMax:  maxvol,
+		VolumeMin:  minvol,
+		Closed:     &closed,
 		EndDateMax: endDateMax,
-		Limit:     limit,
-		Order:     "volumeNum",
+		Limit:      limit,
+		Order:      "volumeNum",
 	})
 	if err != nil {
 		log.Fatal("fetch failed", "err", err)
@@ -102,7 +102,7 @@ func run(cmd *cobra.Command, args []string) {
 	for i, m := range markets {
 		umaLnk := "-"
 		if umaLinks[i] != "" {
-			umaLnk = utils.TL("propose", umaLinks[i])
+			umaLnk = utils.TL("@@@", umaLinks[i])
 		}
 		t.Row(
 			fmt.Sprintf("$%.0f", m.VolumeNum),
@@ -154,7 +154,6 @@ func terminalWidth() int {
 	}
 	return width
 }
-
 
 func prompt() {
 	var _maxvol, _minvol, _limit, _resolveWithin string
