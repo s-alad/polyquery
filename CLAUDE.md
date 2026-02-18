@@ -89,7 +89,14 @@ Build commands (from `pq/`):
 - `sqlc generate` — regenerate store from SQL
 
 Run commands (from `pq/`):
-- `go run ./cmd/scout/` — scan markets (flags: `--max-volume`, `--limit`, `--closed`)
+- `go run ./cmd/scout/` — scan markets; key flags:
+  - `--permissionless` — OOV2 only (no whitelist needed)
+  - `--ended` — markets past end date (floors at 180 days ago)
+  - `--resolve-within 24h` — markets ending within duration (mutually exclusive with --ended)
+  - `--proposable` (default true) — only show umaResolutionStatus==""
+  - `--min-volume`, `--max-volume`, `--limit` — volume/count filters
+  - `--rpc <url>` — Polygon RPC for MOOV2/sports UMA link lookup
+  - `-i=false` — skip interactive prompt
 - `go run ./cmd/scout/ -i` — interactive mode (prompts for filters)
 - `go run ./cmd/resolver/` — start pipeline + API server
 - `go run ./cmd/resolver/ --config config.json` — with custom config

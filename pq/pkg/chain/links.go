@@ -42,7 +42,7 @@ func (u *UmaClient) rpcLink(ctx context.Context, questionID, adapter string) (st
 	if err != nil {
 		return "", fmt.Errorf("get block number: %w", err)
 	}
-	floor := head - 30*43200
+	floor := head - scanDays*43200
 	addr := common.HexToAddress(adapter)
 	qID := common.HexToHash(questionID)
 

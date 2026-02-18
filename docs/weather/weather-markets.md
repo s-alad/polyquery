@@ -90,8 +90,11 @@ How it works:
 ### `scout` — Market discovery
 
 ```bash
-# All OOV2 proposable markets ending today
-go run ./cmd/scout/ --open --resolve-within 24h --min-volume 0 -i=false
+# All permissionless (OOV2) proposable markets ending today
+go run ./cmd/scout/ --permissionless --resolve-within 24h --min-volume 0 -i=false
+
+# All proposable markets ended in last 180 days (audit / catch stragglers)
+go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false
 ```
 
 ## Finding UMA Links

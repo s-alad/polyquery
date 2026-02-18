@@ -18,6 +18,7 @@ const (
 	subgraphURL = "https://api.goldsky.com/api/public/project_clus2fndawbcc01w31192938i/subgraphs/polygon-optimistic-oracle-v2/1.1.0/gn"
 	umaBase     = "https://oracle.uma.xyz/propose?project=Polymarket&transactionHash=%s&eventIndex=%s"
 	chunkSize   = 10000
+	scanDays    = 180
 )
 
 var questionInitSig = crypto.Keccak256Hash(
@@ -28,6 +29,7 @@ var questionInitSig = crypto.Keccak256Hash(
 var oov2Adapters = map[string]bool{
 	"0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74": true, // v2
 	"0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d": true, // v3
+	"0x157ce2d672854c848c9b79c49a8cc6cc89176a49": true, // legacy (soccer draw markets etc.)
 }
 
 // IsOOV2 returns true if the adapter uses OOV2 (permissionless, no whitelist needed)

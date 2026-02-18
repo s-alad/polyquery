@@ -20,18 +20,19 @@ import (
 )
 
 var (
-	maxvol        float64
-	minvol        float64
-	limit         int
-	interactive   bool
-	resolveWithin time.Duration
-	proposable    bool
-	rpcURL        string
-	openOnly      bool
-	ended         bool
+	maxvol         float64
+	minvol         float64
+	count          int
+	interactive    bool
+	resolveWithin  time.Duration
+	proposable     bool
+	rpcURL         string
+	permissionless bool
+	ended          bool
 )
 
-var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable"}
+// flags that suppress the interactive prompt when explicitly set
+var flags = []string{"max-volume", "min-volume", "count", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -42,13 +43,14 @@ var rcmd = &cobra.Command{
 func init() {
 	rcmd.Flags().Float64Var(&maxvol, "max-volume", 10000, "max volume USD")
 	rcmd.Flags().Float64Var(&minvol, "min-volume", 0, "min volume USD")
-	rcmd.Flags().IntVar(&limit, "limit", 25, "result count")
+	rcmd.Flags().IntVar(&count, "count", 0, "max results to display (0 = all)")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
-	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 0, "only markets ending within this duration (e.g., 24h)")
+	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 7*24*time.Hour, "markets ending within this duration from now")
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
-	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for sports/MOOV2 UMA links)")
-	rcmd.Flags().BoolVar(&openOnly, "open", false, "only show OOV2 markets (no whitelist needed)")
-	rcmd.Flags().BoolVar(&ended, "ended", false, "only show markets past their end date")
+	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for MOOV2/sports UMA links)")
+	rcmd.Flags().BoolVar(&permissionless, "permissionless", false, "only show OOV2 markets (no whitelist needed)")
+	rcmd.Flags().BoolVar(&ended, "ended", false, "only show markets past their end date (floors at 180 days ago)")
+	rcmd.MarkFlagsMutuallyExclusive("ended", "resolve-within")
 }
 
 func main() {
@@ -62,37 +64,49 @@ func run(cmd *cobra.Command, args []string) {
 		prompt()
 	}
 
-	closed := false
 	now := time.Now().UTC()
+	floor := now.Add(-180 * 24 * time.Hour).Format(time.RFC3339)
+
 	var endDateMin, endDateMax string
 	if ended {
+		endDateMin = floor
 		endDateMax = now.Format(time.RFC3339)
-	} else if resolveWithin > 0 {
+	} else {
 		endDateMin = now.Format(time.RFC3339)
 		endDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 	}
+
+	// fetch 500 (Gamma max) — date windows fill up fast with 5-min crypto markets
+	// ended: descending so most-recently-missed markets appear first
 	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
 		VolumeMax:  maxvol,
 		VolumeMin:  minvol,
-		Closed:     &closed,
 		EndDateMin: endDateMin,
 		EndDateMax: endDateMax,
-		Limit:      limit,
+		Limit:      500,
 		Order:      "endDate",
-		Ascending:  true,
+		Ascending:  !ended,
 	})
 	if err != nil {
 		log.Fatal("fetch failed", "err", err)
 	}
+
+	// drop pre-UMA markets (no oracle address)
+	markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
+		return m.ResolvedBy != ""
+	})
 	if proposable {
 		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
 			return m.UmaResolutionStatus == ""
 		})
 	}
-	if openOnly {
+	if permissionless {
 		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
 			return chain.IsOOV2(m.ResolvedBy)
 		})
+	}
+	if count > 0 && len(markets) > count {
+		markets = markets[:count]
 	}
 
 	if len(markets) == 0 {
@@ -100,7 +114,6 @@ func run(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	// Fetch UMA links concurrently
 	umaLinks := fetchUmaLinks(markets)
 
 	t := table.New().
@@ -138,13 +151,10 @@ func fetchUmaLinks(markets []gamma.Market) []string {
 
 	links := make([]string, len(markets))
 	var wg sync.WaitGroup
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	for i, m := range markets {
-		if m.ResolvedBy == "" {
-			continue
-		}
 		wg.Add(1)
 		go func(idx int, m gamma.Market) {
 			defer wg.Done()
@@ -161,18 +171,15 @@ func fetchUmaLinks(markets []gamma.Market) []string {
 }
 
 func prompt() {
-	var _maxvol, _minvol, _limit, _resolveWithin string
+	var _maxvol, _minvol, _resolveWithin string
 	var _proposable bool
 	form := huh.NewForm(huh.NewGroup(
 		huh.NewInput().Title("max-volume ($)").Value(&_maxvol).Placeholder("50000"),
 		huh.NewInput().Title("min-volume ($)").Value(&_minvol).Placeholder("0"),
-		huh.NewInput().Title("result-limit").Value(&_limit).Placeholder("10"),
 		huh.NewInput().Title("resolve-within (e.g., 24h)").Value(&_resolveWithin).Placeholder(""),
 		huh.NewConfirm().Title("proposable only?").Value(&_proposable),
 	)).WithTheme(huh.ThemeBase())
-	err := form.Run()
-
-	if err != nil {
+	if err := form.Run(); err != nil {
 		log.Fatal("prompt failed", "err", err)
 	}
 
@@ -181,9 +188,6 @@ func prompt() {
 	}
 	if _minvol != "" {
 		fmt.Sscanf(_minvol, "%f", &minvol)
-	}
-	if _limit != "" {
-		fmt.Sscanf(_limit, "%d", &limit)
 	}
 	if _resolveWithin != "" {
 		dur, err := time.ParseDuration(_resolveWithin)
