@@ -10,14 +10,14 @@ import (
 //go:embed schema.sql
 var schema string
 
-func Open(path string) (*Queries, *sql.DB, error) {
+func Open(path string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", path)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
-		return nil, nil, err
+		return nil, err
 	}
-	return New(db), db, nil
+	return db, nil
 }

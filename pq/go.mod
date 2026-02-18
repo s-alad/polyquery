@@ -6,6 +6,7 @@ require (
 	github.com/charmbracelet/huh v0.8.0
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/charmbracelet/log v0.4.2
+	github.com/dgraph-io/badger/v4 v4.9.1
 	github.com/ethereum/go-ethereum v1.16.8
 	github.com/gofiber/fiber/v3 v3.0.0
 	github.com/google/go-querystring v1.2.0
@@ -13,7 +14,6 @@ require (
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.19.0
 	golang.org/x/term v0.39.0
-	modernc.org/sqlite v1.45.0
 )
 
 require (
@@ -38,7 +38,6 @@ require (
 	github.com/crate-crypto/go-ipa v0.0.0-20240724233137-53bbb0ceb27a // indirect
 	github.com/deckarep/golang-set/v2 v2.6.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
-	github.com/dgraph-io/badger/v4 v4.9.1 // indirect
 	github.com/dgraph-io/ristretto/v2 v2.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
@@ -91,4 +90,5 @@ require (
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
+	modernc.org/sqlite v1.46.0 // indirect
 )
