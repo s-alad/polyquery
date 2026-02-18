@@ -36,9 +36,11 @@ POST https://api.goldsky.com/api/public/project_clus2fndawbcc01w31192938i/subgra
 
 Indexes all `OptimisticPriceRequest` events on the OOV2 contract (`0xee3afe...`). Contains `requestHash`, `requestLogIndex`, `ancillaryData`, `state`, `proposer`, etc.
 
-**Coverage:** v2 adapter (`0x6A9D...`) and v3 adapter (`0x2f5e...`) — ~57% of markets.
+**Coverage:** v2 (`0x6A9D...`), v3 (`0x2f5e...`), and legacy (`0x157Ce2d6...`) adapters — all OOV2, permissionless. ~57% of markets.
 
 **Does NOT cover:** sports adapter (`0x6507...`) which uses MOOV2 (`0x2C0367...`), a separate contract with no deployed subgraph.
+
+**Indexing gap:** Very old OOV2 markets (pre-mid-2024 approx.) predate the subgraph's start block and will return no results. These show as `-` in scout — not a bug.
 
 ### Polygon RPC (FilterLogs)
 
@@ -71,7 +73,7 @@ Two-path lookup based on which oracle contract the adapter uses:
 ```
 Gamma market.ResolvedBy
         │
-        ├── v2 or v3 adapter ──→ Subgraph lookup (instant, ~200ms)
+        ├── v2, v3, or legacy ─→ Subgraph lookup (instant, ~200ms)
         │                         Query ancillaryData_contains with hex(market_id)
         │                         Returns requestHash + requestLogIndex
         │
@@ -97,7 +99,7 @@ The OOV2 subgraph only indexes the `OptimisticOracleV2` contract. Sports markets
 | v2 (`0x6A9D...`) | OOV2 | Yes | ~5% |
 | v3 (`0x2f5e...`) | OOV2 | Yes | ~51% |
 | sports (`0x6507...`) | MOOV2 | No | ~43% |
-| `0x157Ce2d6...` | Unknown | No | ~1% |
+| `0x157Ce2d6...` | OOV2 | Yes | ~1% |
 
 ### eventIndex
 

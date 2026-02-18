@@ -2,7 +2,7 @@
 
 ## Overview
 
-Daily "highest temperature" markets are currently the **only reliable OOV2 (permissionless) markets** on Polymarket. They appear daily for multiple cities, each with several temperature brackets. Only one bracket per city resolves "Yes" — the rest are "No."
+Daily "highest temperature" markets are among the most consistent **OOV2 (permissionless) markets** on Polymarket. T20 cricket markets also use OOV2 (v3 adapter) but are frequently resolved by competitor bots before the window opens. They appear daily for multiple cities, each with several temperature brackets. Only one bracket per city resolves "Yes" — the rest are "No."
 
 These are the best path to building the 5-proposal track record needed for MOOV2 whitelist (sports/CDL markets).
 
@@ -94,7 +94,10 @@ How it works:
 go run ./cmd/scout/ --permissionless --resolve-within 24h --min-volume 0 -i=false
 
 # All proposable markets ended in last 180 days (audit / catch stragglers)
-go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false
+go run ./cmd/scout/ --ended --min-volume 0 -i=false
+
+# Same but show all including already-proposed (to audit competition)
+go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false --count 50
 ```
 
 ## Finding UMA Links

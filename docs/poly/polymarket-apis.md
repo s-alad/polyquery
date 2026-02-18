@@ -73,14 +73,44 @@ Same pagination/sorting plus:
 
 ### Market Response Fields
 
-**Core:** `id`, `question`, `conditionId`, `slug`, `description`
+**Core:** `id`, `question`, `conditionId`, `slug`, `description`, `questionID`
 **Pricing:** `outcomePrices`, `lastTradePrice`, `bestBid`, `bestAsk`
 **Volume:** `volume`, `volumeNum`, `volume24hr`, `volume1wk`, `volume1mo`, `volume1yr`
 **Liquidity:** `liquidity`, `liquidityNum`, `liquidityAmm`, `liquidityClob`
 **Dates:** `startDate`, `endDate`, `createdAt`, `updatedAt`, `closedTime`
-**Status:** `active`, `closed`, `archived`
-**Resolution:** `resolutionSource`, `umaResolutionStatus`
+**Status:** `active`, `closed`, `archived`, `acceptingOrders`
+**Resolution:** `resolutionSource`, `resolvedBy`, `umaResolutionStatus`, `umaResolutionStatuses`, `umaBond`, `umaReward`
+**NegRisk:** `negRisk`, `negRiskMarketID`, `negRiskRequestID`, `negRiskOther`
 **Relations:** `events[]`, `categories[]`, `tags[]`
+
+### Key Field Semantics
+
+**`closed` vs `endDate`:**
+- `closed: true` is the authoritative signal that a market has stopped trading. Set by Polymarket operators.
+- `endDate` is the *originally stated* deadline — a market can have `endDate` in the past and still have `closed: false` (actively trading). Do not use `endDate` to determine if a market has ended.
+- `closedTime` records when `closed` was set.
+- `acceptingOrders: true/false/null` — null on pre-CLOB legacy markets.
+
+**`umaResolutionStatus` (singular string):**
+- absent/`null` in JSON → `""` in Go → **proposable** (no proposal yet)
+- `"proposed"` → proposal submitted, liveness window open (market may still be trading)
+- `"resolved"` → liveness passed, fully settled
+- `"disputed"` → disputed, awaiting DVM vote
+- Cannot filter for proposable via API (`uma_resolution_status=""` is an error) — must filter client-side
+
+**`umaResolutionStatuses` (plural, JSON-encoded string array):**
+- Always present. `"[]"` = proposable. `'["proposed"]'` = proposed.
+- negRisk markets use this field and may have no `umaResolutionStatus` (singular) at all.
+- A market is proposable when singular == `""` AND plural == `"[]"` (or absent).
+
+**`uma_resolution_status` query filter:**
+- Valid API values: `"proposed"`, `"resolved"`, `"disputed"` — useful for server-side filtering of already-proposed/resolved markets
+- Cannot pass `""` — use client-side filtering for proposable markets
+
+**negRisk markets:**
+- `negRisk: true` — mutually exclusive multi-outcome group (exactly one YES resolves)
+- All brackets within a negRisk event share a `negRiskMarketID`
+- Use `closed=true` (not `endDate`) to find ended negRisk markets
 
 ### Event Response Fields
 
