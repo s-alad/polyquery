@@ -47,7 +47,7 @@ type UmaClient struct {
 }
 
 func NewUmaClient(rpcURL string) *UmaClient {
-	cache, _ := kv.Open("kv/cache")
+	cache, _ := kv.Open("pkg/kv/cache")
 	return &UmaClient{
 		http:   &http.Client{Timeout: 15 * time.Second},
 		rpcURL: rpcURL,
