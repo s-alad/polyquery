@@ -24,6 +24,19 @@ func NewClient() *Client {
 	}
 }
 
+func (c *Client) GetEvent(slug string) (*Event, error) {
+	resp, err := c.http.Get(fmt.Sprintf("%s/events?slug=%s", c.baseURL, slug))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	var events []Event
+	if err := json.NewDecoder(resp.Body).Decode(&events); err != nil || len(events) == 0 {
+		return nil, fmt.Errorf("event not found: %s", slug)
+	}
+	return &events[0], nil
+}
+
 func (c *Client) GetMarkets(q MarketQuery) ([]Market, error) {
 	params, _ := query.Values(q)
 

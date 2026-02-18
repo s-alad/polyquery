@@ -107,17 +107,34 @@ UMA's oracle page expects the **block-level** log index (the position of the log
 
 Both are block-level. Confirmed working with eventIndex=132 for the Stony Brook market.
 
-## API
+## API (`pkg/chain/uma.go`)
 
 ```go
 client := chain.NewUmaClient("https://polygon-rpc.example.com")
 defer client.Close()
 
-// marketID, adapter, questionID — all from gamma.Market
+// UmaLink — single market propose URL (fields from gamma.Market)
 link, err := client.UmaLink(ctx, market.ID, market.ResolvedBy, market.QuestionID)
+
+// FetchProposals — batch proposal data for a slice of market IDs (OOV2 subgraph only)
+proposals := client.FetchProposals(ctx, []string{market.ID, ...})
+// returns map[int]chain.Proposal{Timestamp int64, Proposer string}
 ```
 
 RPC URL is only needed for MOOV2/sports markets. OOV2 markets use the subgraph (no RPC).
+
+### Internal structure
+
+```
+subgraphQuery(ctx, query, &out)   ← core engine: HTTP POST + JSON decode
+       ↑                  ↑
+subgraphLink          FetchProposals   ← each builds query via marketQuery(), decodes own struct
+```
+
+- `subgraphQuery` — generic: sends any GraphQL body, streams response into `out`
+- `marketQuery(queryFmt, marketID)` — builds JSON body with hex-encoded `market_id:` in the where clause
+- `subgraphLink` — OOV2 path: fetches `requestHash + requestLogIndex`, returns propose URL
+- `rpcLink` — MOOV2 fallback: chunked `FilterLogs` scan for `QuestionInitialized`
 
 ## Alternative URL Format
 

@@ -1,5 +1,12 @@
 package gamma
 
+// Event groups related markets under a single slug.
+type Event struct {
+	Title   string   `json:"title"`
+	EndDate string   `json:"endDate"`
+	Markets []Market `json:"markets"`
+}
+
 // https://docs.polymarket.com/api-reference/markets/list-markets.md
 type Market struct {
 	ID                  string  `json:"id"`

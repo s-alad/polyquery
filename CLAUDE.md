@@ -48,7 +48,7 @@ docs/
 │   ├── uma-resolution.md     # UMA oracle process, contracts, economics
 │   └── uma-link-lookup.md    # How we find UMA propose URLs (subgraph + RPC fallback)
 ├── weather/
-│   └── weather-markets.md    # Weather temp markets: data sources, strategy, competition
+│   └── weather-markets.md    # Weather temp markets: data sources, strategy, competition, wxgap tool
 └── plans/
     └── resolution-pipeline.md  # Architecture plan for the resolution pipeline
 ```
@@ -68,7 +68,8 @@ polyquery/
 │   ├── sqlc.yaml
 │   ├── cmd/
 │   │   ├── scout/main.go      # market discovery CLI
-│   │   └── resolver/main.go   # pipeline + API server
+│   │   ├── resolver/main.go   # pipeline + API server
+│   │   └── wxgap/main.go      # weather market timing analysis
 │   ├── pkg/
 │   │   ├── gamma/             # Gamma API client
 │   │   ├── resolve/           # Resolver interface + registry
@@ -84,6 +85,7 @@ polyquery/
 Build commands (from `pq/`):
 - `go build ./cmd/scout/` — market scanner
 - `go build ./cmd/resolver/` — resolution pipeline
+- `go build ./cmd/wxgap/` — weather timing analysis
 - `sqlc generate` — regenerate store from SQL
 
 Run commands (from `pq/`):
@@ -91,3 +93,5 @@ Run commands (from `pq/`):
 - `go run ./cmd/scout/ -i` — interactive mode (prompts for filters)
 - `go run ./cmd/resolver/` — start pipeline + API server
 - `go run ./cmd/resolver/ --config config.json` — with custom config
+- `go run ./cmd/wxgap/ <polymarket-event-url>` — analyze weather market timing gaps
+- `go test ./cmd/wxgap/` — run integration test against real Ankara Feb 17 data

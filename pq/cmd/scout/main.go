@@ -17,7 +17,6 @@ import (
 	"github.com/salad/polyquery/pq/pkg/utils"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
-	"golang.org/x/term"
 )
 
 var (
@@ -112,7 +111,7 @@ func run(cmd *cobra.Command, args []string) {
 		}).
 		Headers("VOL", "LIQ", "END", "QUE", "LNK", "UMA")
 
-	t.Width(terminalWidth())
+	t.Width(utils.TerminalWidth())
 
 	for i, m := range markets {
 		umaLnk := "-"
@@ -159,15 +158,6 @@ func fetchUmaLinks(markets []gamma.Market) []string {
 	}
 	wg.Wait()
 	return links
-}
-
-func terminalWidth() int {
-	fd := int(os.Stdout.Fd())
-	width, _, err := term.GetSize(fd)
-	if err != nil || !term.IsTerminal(fd) || width <= 20 {
-		return 0
-	}
-	return width
 }
 
 func prompt() {
