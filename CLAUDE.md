@@ -47,6 +47,8 @@ docs/
 ├── uma/
 │   ├── uma-resolution.md     # UMA oracle process, contracts, economics
 │   └── uma-link-lookup.md    # How we find UMA propose URLs (subgraph + RPC fallback)
+├── weather/
+│   └── weather-markets.md    # Weather temp markets: data sources, strategy, competition
 └── plans/
     └── resolution-pipeline.md  # Architecture plan for the resolution pipeline
 ```

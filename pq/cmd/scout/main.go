@@ -29,6 +29,7 @@ var (
 	proposable    bool
 	rpcURL        string
 	openOnly      bool
+	ended         bool
 )
 
 var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable"}
@@ -48,6 +49,7 @@ func init() {
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
 	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for sports/MOOV2 UMA links)")
 	rcmd.Flags().BoolVar(&openOnly, "open", false, "only show OOV2 markets (no whitelist needed)")
+	rcmd.Flags().BoolVar(&ended, "ended", false, "only show markets past their end date")
 }
 
 func main() {
@@ -62,17 +64,23 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	closed := false
-	var endDateMax string
-	if resolveWithin > 0 {
-		endDateMax = time.Now().UTC().Add(resolveWithin).Format(time.RFC3339)
+	now := time.Now().UTC()
+	var endDateMin, endDateMax string
+	if ended {
+		endDateMax = now.Format(time.RFC3339)
+	} else if resolveWithin > 0 {
+		endDateMin = now.Format(time.RFC3339)
+		endDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 	}
 	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
 		VolumeMax:  maxvol,
 		VolumeMin:  minvol,
 		Closed:     &closed,
+		EndDateMin: endDateMin,
 		EndDateMax: endDateMax,
 		Limit:      limit,
-		Order:      "volumeNum",
+		Order:      "endDate",
+		Ascending:  true,
 	})
 	if err != nil {
 		log.Fatal("fetch failed", "err", err)
