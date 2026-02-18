@@ -5,8 +5,8 @@ import (
 	"strconv"
 )
 
-// FetchProposals queries the subgraph for proposal data for each market ID.
-// Returns index → Proposal; skips markets with no proposal yet.
+// FetchProposals queries the subgraph for proposal data for each market ID
+// Returns index → Proposal; skips markets with no proposal yet
 func (u *UmaClient) FetchProposals(ctx context.Context, marketIDs []string) map[int]Proposal {
 	results := make(map[int]Proposal)
 	for i, id := range marketIDs {

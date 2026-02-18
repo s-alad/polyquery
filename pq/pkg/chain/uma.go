@@ -11,6 +11,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/salad/polyquery/pq/pkg/kv"
 )
 
 const (
@@ -23,16 +24,16 @@ var questionInitSig = crypto.Keccak256Hash(
 	[]byte("QuestionInitialized(bytes32,uint256,address,bytes,address,uint256,uint256)"),
 )
 
-// OOV2 adapters — indexed by UMA's Goldsky subgraph. Permissionless (no whitelist).
+// OOV2 adapters — indexed by UMA's Goldsky subgraph. Permissionless (no whitelist)
 var oov2Adapters = map[string]bool{
 	"0x6a9d222616c90fca5754cd1333cfd9b7fb6a4f74": true, // v2
 	"0x2f5e3684cb1f318ec51b00edba38d79ac2c0aa9d": true, // v3
 }
 
-// IsOOV2 returns true if the adapter uses OOV2 (permissionless, no whitelist needed).
+// IsOOV2 returns true if the adapter uses OOV2 (permissionless, no whitelist needed)
 func IsOOV2(adapter string) bool { return oov2Adapters[strings.ToLower(adapter)] }
 
-// Proposal holds on-chain proposal data for a market.
+// Proposal holds on-chain proposal data for a market
 type Proposal struct {
 	Timestamp int64
 	Proposer  string
@@ -42,12 +43,15 @@ type UmaClient struct {
 	http   *http.Client
 	eth    *ethclient.Client
 	rpcURL string
+	cache  *kv.DB
 }
 
 func NewUmaClient(rpcURL string) *UmaClient {
+	cache, _ := kv.Open("kv/cache")
 	return &UmaClient{
 		http:   &http.Client{Timeout: 15 * time.Second},
 		rpcURL: rpcURL,
+		cache:  cache,
 	}
 }
 
@@ -55,10 +59,13 @@ func (u *UmaClient) Close() {
 	if u.eth != nil {
 		u.eth.Close()
 	}
+	if u.cache != nil {
+		u.cache.Close()
+	}
 }
 
-// UmaLink returns the oracle.uma.xyz propose URL for a market.
-// Uses the subgraph for OOV2 adapters; falls back to RPC log scan for MOOV2.
+// UmaLink returns the oracle.uma.xyz propose URL for a market
+// Uses the subgraph for OOV2 adapters; falls back to RPC log scan for MOOV2
 func (u *UmaClient) UmaLink(ctx context.Context, marketID, adapter, questionID string) (string, error) {
 	if adapter == "" {
 		return "", fmt.Errorf("adapter address required")
@@ -69,7 +76,7 @@ func (u *UmaClient) UmaLink(ctx context.Context, marketID, adapter, questionID s
 	return u.rpcLink(ctx, questionID, adapter)
 }
 
-// subgraphQuery sends a GraphQL query to the Goldsky subgraph and decodes the response into out.
+// subgraphQuery sends a GraphQL query to the Goldsky subgraph and decodes the response into out
 func (u *UmaClient) subgraphQuery(ctx context.Context, query string, out any) error {
 	req, _ := http.NewRequestWithContext(ctx, "POST", subgraphURL, strings.NewReader(query))
 	req.Header.Set("Content-Type", "application/json")
