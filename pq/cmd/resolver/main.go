@@ -8,10 +8,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var rootCmd = &cobra.Command{Use: "resolver", Short: "Polyquery resolver", Run: run}
+var rcmd = &cobra.Command{Use: "resolver", Short: "Polyquery resolver", Run: run}
 
 func main() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := rcmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

@@ -37,6 +37,14 @@ func (c *Client) GetEvent(slug string) (*Event, error) {
 	return &events[0], nil
 }
 
+func (c *Client) GetMarket(slug string) (*Market, error) {
+	markets, err := c.GetMarkets(MarketQuery{Slug: slug})
+	if err != nil || len(markets) == 0 {
+		return nil, fmt.Errorf("market not found: %s", slug)
+	}
+	return &markets[0], nil
+}
+
 func (c *Client) GetMarkets(q MarketQuery) ([]Market, error) {
 	params, _ := query.Values(q)
 

@@ -30,6 +30,7 @@ type Market struct {
 
 // https://docs.polymarket.com/api-reference/markets/list-markets.md
 type MarketQuery struct {
+	Slug       string  `url:"slug,omitempty"`
 	VolumeMax  float64 `url:"volume_num_max,omitempty"`
 	VolumeMin  float64 `url:"volume_num_min,omitempty"`
 	Closed     *bool   `url:"closed,omitempty"`

@@ -65,40 +65,40 @@ polyquery/
 ├── docs/                      # project-wide knowledge base
 ├── pq/                        # Go monorepo
 │   ├── go.mod                 # github.com/salad/polyquery/pq
-│   ├── sqlc.yaml
+│   ├── sqlc.yaml              # SQLC config (schema/queries placeholders for now)
 │   ├── cmd/
 │   │   ├── scout/main.go      # market discovery CLI
-│   │   ├── resolver/main.go   # pipeline + API server
+│   │   ├── resolver/main.go   # API server skeleton (health check only)
 │   │   └── wxgap/main.go      # weather market timing analysis
 │   ├── pkg/
 │   │   ├── gamma/             # Gamma API client
-│   │   ├── resolve/           # Resolver interface + registry
-│   │   ├── store/             # SQLite via SQLC
-│   │   ├── api/               # JSON API for dashboard
-│   │   └── pipeline/          # Poller + resolver goroutines
-│   └── resolvers/             # Concrete resolver implementations
-│       └── nba.go
+│   │   ├── chain/             # UMA link lookup (subgraph + RPC), proposal fetching
+│   │   ├── kv/                # Badger KV cache (used by chain for RPC scan results)
+│   │   ├── store/             # SQLite via SQLC (schema/queries placeholders)
+│   │   ├── api/               # Fiber route registration (health only)
+│   │   └── utils/             # Terminal helpers (Truncate, TL, TerminalWidth)
+│   └── resolvers/             # Concrete resolver implementations (empty, TODO)
 ├── dash/                      # Svelte frontend (TODO)
 └── .nixdev/                   # devenv config
 ```
 
 Build commands (from `pq/`):
 - `go build ./cmd/scout/` — market scanner
-- `go build ./cmd/resolver/` — resolution pipeline
+- `go build ./cmd/resolver/` — API server skeleton
 - `go build ./cmd/wxgap/` — weather timing analysis
-- `sqlc generate` — regenerate store from SQL
+- `sqlc generate` — regenerate store from SQL (once schema/queries are populated)
 
 Run commands (from `pq/`):
 - `go run ./cmd/scout/` — scan markets; key flags:
   - `--permissionless` — OOV2 only (no whitelist needed)
-  - `--ended` — markets past end date (floors at 180 days ago)
+  - `--ended` — markets past end date (floors at 180 days ago), descending
   - `--resolve-within 24h` — markets ending within duration (mutually exclusive with --ended)
-  - `--proposable` (default true) — only show umaResolutionStatus==""
-  - `--min-volume`, `--max-volume`, `--limit` — volume/count filters
+  - `--proposable` (default true) — only show markets with no UMA proposal yet
+  - `--min-volume`, `--max-volume` — volume filters
+  - `--count N` — limit results (default 0 = all)
   - `--rpc <url>` — Polygon RPC for MOOV2/sports UMA link lookup
   - `-i=false` — skip interactive prompt
 - `go run ./cmd/scout/ -i` — interactive mode (prompts for filters)
-- `go run ./cmd/resolver/` — start pipeline + API server
-- `go run ./cmd/resolver/ --config config.json` — with custom config
+- `go run ./cmd/resolver/` — start API server on :8745
 - `go run ./cmd/wxgap/ <polymarket-event-url>` — analyze weather market timing gaps
-- `go test ./cmd/wxgap/` — run integration test against real Ankara Feb 17 data
+- `go test ./cmd/wxgap/ -timeout 60s` — run integration test against real Ankara Feb 17 data
