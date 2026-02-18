@@ -29,7 +29,7 @@ const wxAPI = "https://api.weather.com/v1/location/%s:9:%s/observations/historic
 
 var hc = &http.Client{Timeout: 15 * time.Second}
 
-var cmd = &cobra.Command{
+var rcmd = &cobra.Command{
 	Use:   "wxgap <polymarket-event-url-or-slug>",
 	Short: "analyze weather market proposal timing gaps",
 	Args:  cobra.ExactArgs(1),
@@ -37,7 +37,7 @@ var cmd = &cobra.Command{
 }
 
 func main() {
-	if err := cmd.Execute(); err != nil {
+	if err := rcmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }
@@ -165,7 +165,7 @@ func run(arg string) error {
 		Border(lipgloss.RoundedBorder()).
 		BorderRow(true).
 		StyleFunc(func(_, _ int) lipgloss.Style { return lipgloss.NewStyle().Padding(0, 1) }).
-		Headers("BRACKET", "OUTCOME", "RESOLVABLE", "PROPOSED", "GAP", "PROPOSER")
+		Headers("BRACKET", "OUTCOME", "RESOLVABLE", "PROPOSED", "GAP", "PROPOSER", "UMA LINK")
 	if w := utils.TerminalWidth(); w > 0 {
 		tbl.Width(w)
 	}
@@ -184,7 +184,12 @@ func run(arg string) error {
 			}
 			proposer = p.Proposer[:10] + "…"
 		}
-		tbl.Row(b.label(), outcome, fmtTime(resolvable, localTZ, localLabel), proposedAt, gap, proposer)
+		m := b.market
+		umaLink := "-"
+		if link, err := uma.UmaLink(context.Background(), m.ID, m.ResolvedBy, m.QuestionID); err == nil {
+			umaLink = utils.TL(link, link)
+		}
+		tbl.Row(b.label(), outcome, fmtTime(resolvable, localTZ, localLabel), proposedAt, gap, proposer, umaLink)
 	}
 	fmt.Println(tbl.Render())
 	return nil
