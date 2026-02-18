@@ -82,7 +82,8 @@ func run(cmd *cobra.Command, args []string) {
 		q.Ascending = false
 	} else {
 		q.Closed = &no
-		q.EndDateMin = now.Format(time.RFC3339)
+		// EndDateMin floors at start of today so same-day markets (endDate past but not yet closed) are included
+		q.EndDateMin = now.Truncate(24 * time.Hour).Format(time.RFC3339)
 		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 		q.Ascending = true
 	}
