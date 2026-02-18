@@ -67,26 +67,28 @@ func run(cmd *cobra.Command, args []string) {
 	now := time.Now().UTC()
 	floor := now.Add(-180 * 24 * time.Hour).Format(time.RFC3339)
 
-	var endDateMin, endDateMax string
+	// ended: closed=true, floor endDate to 180 days ago, descending (most recent first)
+	// future: closed=false, endDate window from now → now+resolveWithin, ascending
+	yes, no := true, false
+	q := gamma.MarketQuery{
+		VolumeMax: maxvol,
+		VolumeMin: minvol,
+		Limit:     500,
+		Order:     "endDate",
+	}
 	if ended {
-		endDateMin = floor
-		endDateMax = now.Format(time.RFC3339)
+		q.Closed = &yes
+		q.EndDateMin = floor
+		q.Ascending = false
 	} else {
-		endDateMin = now.Format(time.RFC3339)
-		endDateMax = now.Add(resolveWithin).Format(time.RFC3339)
+		q.Closed = &no
+		q.EndDateMin = now.Format(time.RFC3339)
+		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
+		q.Ascending = true
 	}
 
 	// fetch 500 (Gamma max) — date windows fill up fast with 5-min crypto markets
-	// ended: descending so most-recently-missed markets appear first
-	markets, err := gamma.NewClient().GetMarkets(gamma.MarketQuery{
-		VolumeMax:  maxvol,
-		VolumeMin:  minvol,
-		EndDateMin: endDateMin,
-		EndDateMax: endDateMax,
-		Limit:      500,
-		Order:      "endDate",
-		Ascending:  !ended,
-	})
+	markets, err := gamma.NewClient().GetMarkets(q)
 	if err != nil {
 		log.Fatal("fetch failed", "err", err)
 	}
@@ -97,7 +99,9 @@ func run(cmd *cobra.Command, args []string) {
 	})
 	if proposable {
 		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
-			return m.UmaResolutionStatus == ""
+			// singular absent/null → proposable for standard markets
+			// plural "[]" → proposable for negRisk markets
+			return m.UmaResolutionStatus == "" && (m.UmaResolutionStatuses == "" || m.UmaResolutionStatuses == "[]")
 		})
 	}
 	if permissionless {
