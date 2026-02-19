@@ -6,9 +6,13 @@ package chain
 
 import (
 	"context"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
+	"sync"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -135,4 +139,66 @@ func (u *UmaClient) subgraphLink(ctx context.Context, marketID string) (string, 
 	}
 	r := result.Data.Requests[0]
 	return fmt.Sprintf(umaBase, r.Hash, r.LogIndex), nil
+}
+
+const batchSize = 10
+
+// SubgraphLinks fetches UMA propose URLs for multiple OOV2 market IDs in batched subgraph queries.
+// Chunks are issued concurrently. Returns a map of marketID → propose URL.
+func (u *UmaClient) SubgraphLinks(ctx context.Context, marketIDs []string) (map[string]string, error) {
+	type entry struct {
+		id, link string
+	}
+	out := make(chan entry, len(marketIDs))
+
+	var wg sync.WaitGroup
+	for i := 0; i < len(marketIDs); i += batchSize {
+		end := i + batchSize
+		if end > len(marketIDs) {
+			end = len(marketIDs)
+		}
+		chunk := marketIDs[i:end]
+		wg.Add(1)
+		go func(chunk []string) {
+			defer wg.Done()
+			var orClauses []string
+			hexByMarket := make(map[string]string, len(chunk))
+			for _, id := range chunk {
+				h := hex.EncodeToString([]byte("market_id: " + id))
+				hexByMarket[h] = id
+				orClauses = append(orClauses, fmt.Sprintf(`{ancillaryData_contains:"%s"}`, h))
+			}
+			gql := fmt.Sprintf(`{ optimisticPriceRequests(where:{or:[%s]} first:1000) { ancillaryData requestHash requestLogIndex } }`,
+				strings.Join(orClauses, ","))
+			body, _ := json.Marshal(map[string]string{"query": gql})
+			var resp struct {
+				Data struct {
+					Requests []struct {
+						AncillaryData string `json:"ancillaryData"`
+						Hash          string `json:"requestHash"`
+						LogIndex      string `json:"requestLogIndex"`
+					} `json:"optimisticPriceRequests"`
+				} `json:"data"`
+			}
+			if err := u.subgraphQuery(ctx, string(body), &resp); err != nil {
+				return
+			}
+			for _, r := range resp.Data.Requests {
+				for hexFrag, id := range hexByMarket {
+					if strings.Contains(r.AncillaryData, hexFrag) {
+						out <- entry{id, fmt.Sprintf(umaBase, r.Hash, r.LogIndex)}
+						break
+					}
+				}
+			}
+		}(chunk)
+	}
+	wg.Wait()
+	close(out)
+
+	result := make(map[string]string, len(marketIDs))
+	for e := range out {
+		result[e.id] = e.link
+	}
+	return result, nil
 }

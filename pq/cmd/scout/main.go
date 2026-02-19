@@ -163,11 +163,32 @@ func fetchUmaLinks(markets []gamma.Market) []string {
 	defer uma.Close()
 
 	links := make([]string, len(markets))
-	var wg sync.WaitGroup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
+	// batch OOV2 markets into a single subgraph query
+	var oov2IDs []string
+	for _, m := range markets {
+		if chain.IsOOV2(m.ResolvedBy) {
+			oov2IDs = append(oov2IDs, m.ID)
+		}
+	}
+	batch, err := uma.SubgraphLinks(ctx, oov2IDs)
+	if err != nil {
+		log.Warn("subgraph batch failed", "err", err)
+	}
 	for i, m := range markets {
+		if l, ok := batch[m.ID]; ok {
+			links[i] = l
+		}
+	}
+
+	// MOOV2 markets need individual RPC scans
+	var wg sync.WaitGroup
+	for i, m := range markets {
+		if chain.IsOOV2(m.ResolvedBy) {
+			continue
+		}
 		wg.Add(1)
 		go func(idx int, m gamma.Market) {
 			defer wg.Done()
