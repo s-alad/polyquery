@@ -74,18 +74,17 @@ func run(cmd *cobra.Command, args []string) {
 		VolumeMax: maxvol,
 		VolumeMin: minvol,
 		Limit:     500,
-		Order:     "endDate",
+		Order:     "volumeNum",
+		Ascending: true,
 	}
 	if ended {
 		q.Closed = &yes
 		q.EndDateMin = floor
-		q.Ascending = false
 	} else {
 		q.Closed = &no
 		// EndDateMin floors at start of today so same-day markets (endDate past but not yet closed) are included
 		q.EndDateMin = now.Truncate(24 * time.Hour).Format(time.RFC3339)
 		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
-		q.Ascending = true
 	}
 
 	// fetch 500 (Gamma max) — date windows fill up fast with 5-min crypto markets
