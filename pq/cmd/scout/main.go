@@ -22,7 +22,7 @@ import (
 var (
 	maxvol         float64
 	minvol         float64
-	count          int
+	top            int
 	interactive    bool
 	resolveWithin  time.Duration
 	proposable     bool
@@ -32,7 +32,7 @@ var (
 )
 
 // flags that suppress the interactive prompt when explicitly set
-var flags = []string{"max-volume", "min-volume", "count", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
+var flags = []string{"max-volume", "min-volume", "top", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -43,7 +43,7 @@ var rcmd = &cobra.Command{
 func init() {
 	rcmd.Flags().Float64Var(&maxvol, "max-volume", 10000, "max volume USD")
 	rcmd.Flags().Float64Var(&minvol, "min-volume", 0, "min volume USD")
-	rcmd.Flags().IntVar(&count, "count", 0, "max results to display (0 = all)")
+	rcmd.Flags().IntVar(&top, "top", 0, "max results to display (0 = all)")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
 	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 7*24*time.Hour, "markets ending within this duration from now")
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
@@ -74,7 +74,7 @@ func run(cmd *cobra.Command, args []string) {
 		VolumeMax: maxvol,
 		VolumeMin: minvol,
 		Limit:     500,
-		Order:     "volumeNum",
+		Order:     "endDate",
 		Ascending: true,
 	}
 	if ended {
@@ -87,10 +87,19 @@ func run(cmd *cobra.Command, args []string) {
 		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 	}
 
-	// fetch 500 (Gamma max) — date windows fill up fast with 5-min crypto markets
-	markets, err := gamma.NewClient().GetMarkets(q)
-	if err != nil {
-		log.Fatal("fetch failed", "err", err)
+	// paginate through all results (500 per page max)
+	gc := gamma.NewClient()
+	var markets []gamma.Market
+	for {
+		page, err := gc.GetMarkets(q)
+		if err != nil {
+			log.Fatal("fetch failed", "err", err)
+		}
+		markets = append(markets, page...)
+		if len(page) < 500 {
+			break
+		}
+		q.Offset += 500
 	}
 
 	// drop pre-UMA markets (no oracle address)
@@ -109,8 +118,8 @@ func run(cmd *cobra.Command, args []string) {
 			return chain.IsOOV2(m.ResolvedBy)
 		})
 	}
-	if count > 0 && len(markets) > count {
-		markets = markets[:count]
+	if top > 0 && len(markets) > top {
+		markets = markets[:top]
 	}
 
 	if len(markets) == 0 {
@@ -146,7 +155,7 @@ func run(cmd *cobra.Command, args []string) {
 	}
 
 	fmt.Println(t.Render())
-	log.Info("markets summary", "count", len(markets), "volume_min", minvol, "volume_max", maxvol)
+	log.Info("markets", "shown", len(markets), "volume_min", minvol, "volume_max", maxvol)
 }
 
 func fetchUmaLinks(markets []gamma.Market) []string {

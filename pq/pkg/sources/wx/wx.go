@@ -7,6 +7,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"sort"
 	"time"
 )
 
@@ -35,6 +36,43 @@ func Fetch(station, country, unit, date string) ([]Obs, error) {
 		return nil, fmt.Errorf("weather decode: %w", err)
 	}
 	return wr.Observations, nil
+}
+
+// TypicalDayEnd fetches the past n days for the station and returns the median
+// time-of-day (in UTC seconds since midnight) of the last daily observation.
+// Use this to predict when today's final reading will arrive.
+func TypicalDayEnd(station, country, unit string, targetDate time.Time, days int) (time.Duration, error) {
+	ends := make([]time.Duration, 0, days)
+	for i := 1; i <= days; i++ {
+		date := targetDate.AddDate(0, 0, -i).Format("20060102")
+		obs, err := Fetch(station, country, unit, date)
+		if err != nil || len(obs) == 0 {
+			continue
+		}
+		_, last := Stats(obs)
+		// time-of-day in UTC
+		sod := last.Truncate(24 * time.Hour)
+		ends = append(ends, last.Sub(sod))
+	}
+	if len(ends) == 0 {
+		return 0, fmt.Errorf("no historical data for %s", station)
+	}
+	sort.Slice(ends, func(i, j int) bool { return ends[i] < ends[j] })
+	return ends[len(ends)/2], nil
+}
+
+// Interval returns the median gap between consecutive observations.
+// Returns 0 if fewer than 2 observations.
+func Interval(obs []Obs) time.Duration {
+	if len(obs) < 2 {
+		return 0
+	}
+	gaps := make([]time.Duration, len(obs)-1)
+	for i := 1; i < len(obs); i++ {
+		gaps[i-1] = time.Duration(obs[i].ValidTimeGMT-obs[i-1].ValidTimeGMT) * time.Second
+	}
+	sort.Slice(gaps, func(i, j int) bool { return gaps[i] < gaps[j] })
+	return gaps[len(gaps)/2]
 }
 
 // Stats returns the max temperature and time of the last observation.

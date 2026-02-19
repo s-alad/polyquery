@@ -136,9 +136,18 @@ func run(arg string) error {
 	}
 	date := endDate.Format("20060102")
 
-	log.Info("polling", "station", station, "interval", pollInterval)
+	// Learn from the past 7 days when this station typically posts its last obs.
+	typicalEnd, err := wx.TypicalDayEnd(station, country, unit, endDate, 7)
+	if err != nil {
+		log.Warn("could not determine typical day end, falling back to interval detection", "err", err)
+	} else {
+		// deadline = start of market day (UTC) + typical last-obs time-of-day
+		dayStart := endDate.Truncate(24 * time.Hour)
+		deadline := dayStart.Add(typicalEnd)
+		log.Info("polling", "station", station, "poll_interval", pollInterval,
+			"typical_day_end", deadline.UTC().Format("15:04 UTC"))
+	}
 
-	var prevLast time.Time
 	for {
 		obs, err := wx.Fetch(station, country, unit, date)
 		if err != nil {
@@ -147,13 +156,28 @@ func run(arg string) error {
 			continue
 		}
 		maxTemp, lastObs := wx.Stats(obs)
-		log.Info("poll", "obs", len(obs), "max", maxTemp, "last", lastObs.UTC().Format("15:04 UTC"))
+		stationInterval := wx.Interval(obs)
 
-		if !lastObs.IsZero() && lastObs.Equal(prevLast) {
-			log.Info("station day ended — resolving")
+		// Predict today's cutoff from historical pattern; fall back to interval-based.
+		var deadline time.Time
+		if typicalEnd > 0 {
+			dayStart := endDate.Truncate(24 * time.Hour)
+			deadline = dayStart.Add(typicalEnd)
+		} else if stationInterval > 0 {
+			deadline = lastObs.Add(stationInterval)
+		}
+
+		log.Info("poll",
+			"obs", len(obs),
+			"max", maxTemp,
+			"last", lastObs.UTC().Format("15:04 UTC"),
+			"fires_at", deadline.UTC().Format("15:04 UTC"),
+		)
+
+		if !deadline.IsZero() && time.Now().UTC().After(deadline) && !lastObs.IsZero() {
+			log.Info("station day ended", "last_obs", lastObs.UTC().Format("15:04 UTC"))
 			return resolve(brackets, maxTemp, lastObs)
 		}
-		prevLast = lastObs
 		time.Sleep(pollInterval)
 	}
 }
