@@ -22,7 +22,7 @@ import (
 var (
 	maxvol         float64
 	minvol         float64
-	top            int
+	limit          int
 	interactive    bool
 	resolveWithin  time.Duration
 	proposable     bool
@@ -32,7 +32,7 @@ var (
 )
 
 // flags that suppress the interactive prompt when explicitly set
-var flags = []string{"max-volume", "min-volume", "top", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
+var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -43,7 +43,7 @@ var rcmd = &cobra.Command{
 func init() {
 	rcmd.Flags().Float64Var(&maxvol, "max-volume", 10000, "max volume USD")
 	rcmd.Flags().Float64Var(&minvol, "min-volume", 0, "min volume USD")
-	rcmd.Flags().IntVar(&top, "top", 0, "max results to display (0 = all)")
+	rcmd.Flags().IntVar(&limit, "limit", 0, "max results (0 = all); caps API fetch to avoid overloading")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
 	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 7*24*time.Hour, "markets ending within this duration from now")
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
@@ -158,40 +158,24 @@ func run(cmd *cobra.Command, args []string) {
 	log.Info("markets", "shown", len(markets), "volume_min", minvol, "volume_max", maxvol)
 }
 
+const umaWorkers = 20
+
 func fetchUmaLinks(markets []gamma.Market) []string {
 	uma := chain.NewUmaClient(rpcURL)
 	defer uma.Close()
 
 	links := make([]string, len(markets))
+	sem := make(chan struct{}, umaWorkers)
+	var wg sync.WaitGroup
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	// batch OOV2 markets into a single subgraph query
-	var oov2IDs []string
-	for _, m := range markets {
-		if chain.IsOOV2(m.ResolvedBy) {
-			oov2IDs = append(oov2IDs, m.ID)
-		}
-	}
-	batch, err := uma.SubgraphLinks(ctx, oov2IDs)
-	if err != nil {
-		log.Warn("subgraph batch failed", "err", err)
-	}
 	for i, m := range markets {
-		if l, ok := batch[m.ID]; ok {
-			links[i] = l
-		}
-	}
-
-	// MOOV2 markets need individual RPC scans
-	var wg sync.WaitGroup
-	for i, m := range markets {
-		if chain.IsOOV2(m.ResolvedBy) {
-			continue
-		}
 		wg.Add(1)
 		go func(idx int, m gamma.Market) {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			link, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID)
 			if err != nil {
 				log.Debug("uma link failed", "market", m.ID, "err", err)
