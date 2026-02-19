@@ -2,11 +2,8 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
 	"net/url"
 	"os"
 	"path"
@@ -21,13 +18,10 @@ import (
 	"github.com/charmbracelet/log"
 	"github.com/salad/polyquery/pq/pkg/chain"
 	"github.com/salad/polyquery/pq/pkg/gamma"
+	"github.com/salad/polyquery/pq/pkg/sources/wx"
 	"github.com/salad/polyquery/pq/pkg/utils"
 	"github.com/spf13/cobra"
 )
-
-const wxAPI = "https://api.weather.com/v1/location/%s:9:%s/observations/historical.json?apiKey=e1f10a1e78da46f5b10a1e78da96f525&units=%s&startDate=%s&endDate=%s"
-
-var hc = &http.Client{Timeout: 15 * time.Second}
 
 var rcmd = &cobra.Command{
 	Use:   "wxgap <polymarket-event-url-or-slug>",
@@ -40,11 +34,6 @@ func main() {
 	if err := rcmd.Execute(); err != nil {
 		os.Exit(1)
 	}
-}
-
-type wxObs struct {
-	ValidTimeGMT int64 `json:"valid_time_gmt"`
-	Temp         int   `json:"temp"`
 }
 
 type bracket struct {
@@ -104,7 +93,7 @@ func (b bracket) label() string {
 // resolvableAt returns when this bracket first became resolvable and an outcome label.
 // Exceeded brackets resolve at the first obs where temp > bracket.high.
 // Day-end brackets (Yes or above daily max) resolve at the last observation.
-func (b bracket) resolvableAt(obs []wxObs, maxTemp int, lastObs time.Time) (time.Time, string) {
+func (b bracket) resolvableAt(obs []wx.Obs, maxTemp int, lastObs time.Time) (time.Time, string) {
 	if b.contains(maxTemp) {
 		return lastObs, "Yes (day end)"
 	}
@@ -113,7 +102,7 @@ func (b bracket) resolvableAt(obs []wxObs, maxTemp int, lastObs time.Time) (time
 	}
 	for _, o := range obs {
 		if o.Temp > b.high {
-			return time.Unix(o.ValidTimeGMT, 0).UTC(), "No (exceeded)"
+			return time.Unix(o.ValidTimeGMT, 0).UTC(), "No (exceeded)" //nolint
 		}
 	}
 	return lastObs, "No (day end)"
@@ -145,13 +134,13 @@ func run(arg string) error {
 	if station == "" {
 		return fmt.Errorf("could not extract station from: %s", event.Markets[0].ResolutionSource)
 	}
-	obs, err := fetchWeather(station, country, unit, endDate.Format("20060102"))
+	obs, err := wx.Fetch(station, country, unit, endDate.Format("20060102"))
 	if err != nil {
 		return err
 	}
 
 	localTZ, localLabel := stationLocal(station)
-	maxTemp, lastObs := stats(obs)
+	maxTemp, lastObs := wx.Stats(obs)
 	log.Info("weather", "station", station, "obs", len(obs), "max", maxTemp, "last", fmtTime(lastObs, localTZ, localLabel))
 
 	ids := make([]string, len(brackets))
@@ -193,19 +182,6 @@ func run(arg string) error {
 	}
 	fmt.Println(tbl.Render())
 	return nil
-}
-
-func stats(obs []wxObs) (maxTemp int, lastObs time.Time) {
-	maxTemp = math.MinInt32
-	for _, o := range obs {
-		if o.Temp > maxTemp {
-			maxTemp = o.Temp
-		}
-		if t := time.Unix(o.ValidTimeGMT, 0).UTC(); t.After(lastObs) {
-			lastObs = t
-		}
-	}
-	return
 }
 
 var est = time.FixedZone("EST", -5*3600)
@@ -266,18 +242,3 @@ func extractStation(src string) (string, string) {
 	return "", ""
 }
 
-func fetchWeather(station, country, unit, date string) ([]wxObs, error) {
-	resp, err := hc.Get(fmt.Sprintf(wxAPI, station, country, unit, date, date))
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	raw, _ := io.ReadAll(resp.Body)
-	var wr struct {
-		Observations []wxObs `json:"observations"`
-	}
-	if err := json.Unmarshal(raw, &wr); err != nil {
-		return nil, fmt.Errorf("weather decode: %w", err)
-	}
-	return wr.Observations, nil
-}

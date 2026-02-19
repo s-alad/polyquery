@@ -7,6 +7,7 @@ import (
 
 	"github.com/salad/polyquery/pq/pkg/chain"
 	"github.com/salad/polyquery/pq/pkg/gamma"
+	"github.com/salad/polyquery/pq/pkg/sources/wx"
 )
 
 // TestAnkaraFeb17 validates against the real Ankara Feb 17 2026 market.
@@ -18,9 +19,9 @@ func TestAnkaraFeb17(t *testing.T) {
 	}
 
 	endDate, _ := time.Parse(time.RFC3339, event.EndDate)
-	obs, err := fetchWeather("LTAC", "TR", "m", endDate.Format("20060102"))
+	obs, err := wx.Fetch("LTAC", "TR", "m", endDate.Format("20060102"))
 	if err != nil {
-		t.Fatal("fetchWeather:", err)
+		t.Fatal("wx.Fetch:", err)
 	}
 
 	var brackets []bracket
@@ -31,7 +32,7 @@ func TestAnkaraFeb17(t *testing.T) {
 	}
 	sortBrackets(brackets)
 
-	maxTemp, lastObs := stats(obs)
+	maxTemp, lastObs := wx.Stats(obs)
 
 	ids := make([]string, len(brackets))
 	for i, b := range brackets {

@@ -59,9 +59,11 @@ Two active bots observed:
 | Type | Resolvable | Bot proposes | Gap to beat |
 |------|-----------|-------------|-------------|
 | "No (exceeded)" | When station first reads above bracket | ~5 min after observation | < 5 min |
-| "Yes / No (day end)" | Last station observation of day | ~35 min after last obs | < 35 min |
+| "Yes / No (day end)" | Last station observation of day | ~19 min after last obs | < 19 min |
 
-Bots poll the weather station roughly every 5 minutes for exceeded brackets. Day-end brackets get proposed ~35 min after the last reading of the day.
+- `0x53692dbf` handles "exceeded" brackets (~5 min gap)
+- `0xc9ffd41c` handles "day end" brackets (~19 min gap)
+- Day-end gap was previously estimated at ~35 min; measured at 19 min on Feb 18 2026 Ankara data
 
 ## Tools
 
@@ -74,7 +76,7 @@ cd pq/
 go run ./cmd/wxgap/ 'https://polymarket.com/event/highest-temperature-in-ankara-on-february-17-2026'
 ```
 
-Output columns: `BRACKET | OUTCOME | RESOLVABLE | PROPOSED | GAP | PROPOSER`
+Output columns: `BRACKET | OUTCOME | RESOLVABLE | PROPOSED | GAP | PROPOSER | UMA LINK`
 - `RESOLVABLE` = first moment the bracket could be proposed (UTC / EST / local)
 - `PROPOSED` = when it was actually proposed on UMA
 - `GAP` = time the reward sat unclaimed
@@ -90,8 +92,8 @@ How it works:
 ### `scout` — Market discovery
 
 ```bash
-# All permissionless (OOV2) proposable markets ending today
-go run ./cmd/scout/ --permissionless --resolve-within 24h --min-volume 0 -i=false
+# All permissionless (OOV2) proposable markets ending today (includes same-day markets past endDate but still open)
+go run ./cmd/scout/ --permissionless --min-volume 0 -i=false
 
 # All proposable markets ended in last 180 days (audit / catch stragglers)
 go run ./cmd/scout/ --ended --min-volume 0 -i=false
@@ -99,6 +101,8 @@ go run ./cmd/scout/ --ended --min-volume 0 -i=false
 # Same but show all including already-proposed (to audit competition)
 go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false --count 50
 ```
+
+**Note:** Scout floors `EndDateMin` to start-of-day (not now) so markets whose stated `endDate` has passed but are still `closed=false` remain visible. The authoritative "done" signal is `closed=true`, not `endDate`.
 
 ## Finding UMA Links
 
@@ -108,4 +112,17 @@ Each bracket's UMA link is found via the Goldsky subgraph using the Gamma market
 3. Hex-encode `"market_id: {ID}"` and query subgraph `ancillaryData_contains`
 4. Build: `oracle.uma.xyz/propose?project=Polymarket&transactionHash={hash}&eventIndex={logIndex}`
 
-Scout fetches these automatically.
+Scout and `wxgap` fetch these automatically. You can also use the `linker` tool directly.
+
+### `linker` — UMA link lookup
+
+Given any Polymarket URL, prints a table of UMA propose links:
+
+```bash
+# Single market → one link
+go run ./cmd/linker/ 'https://polymarket.com/market/highest-temperature-in-ankara-on-february-18-2026-9c'
+
+# Event URL (any path depth) → all brackets
+go run ./cmd/linker/ 'https://polymarket.com/event/highest-temperature-in-ankara-on-february-18-2026'
+go run ./cmd/linker/ 'https://polymarket.com/event/highest-temperature-in-ankara-on-february-18-2026/highest-temperature-in-ankara-on-february-18-2026-9c'
+```
