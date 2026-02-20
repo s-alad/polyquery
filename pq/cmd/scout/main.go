@@ -17,6 +17,7 @@ import (
 	"github.com/salad/polyquery/pq/pkg/utils"
 	"github.com/samber/lo"
 	"github.com/spf13/cobra"
+	"sort"
 )
 
 var (
@@ -25,6 +26,7 @@ var (
 	limit          int
 	interactive    bool
 	resolveWithin  time.Duration
+	stale          time.Duration
 	proposable     bool
 	rpcURL         string
 	permissionless bool
@@ -32,7 +34,7 @@ var (
 )
 
 // flags that suppress the interactive prompt when explicitly set
-var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "proposable", "permissionless", "ended", "rpc"}
+var flags = []string{"max-volume", "min-volume", "limit", "resolve-within", "stale", "proposable", "permissionless", "ended", "rpc"}
 
 var rcmd = &cobra.Command{
 	Use:   "scout",
@@ -46,6 +48,7 @@ func init() {
 	rcmd.Flags().IntVar(&limit, "limit", 0, "max results (0 = all); caps API fetch to avoid overloading")
 	rcmd.Flags().BoolVarP(&interactive, "interactive", "i", true, "prompt for filters")
 	rcmd.Flags().DurationVar(&resolveWithin, "resolve-within", 7*24*time.Hour, "markets ending within this duration from now")
+	rcmd.Flags().DurationVar(&stale, "stale", 0, "also include closed=false markets with endDate this far in the past")
 	rcmd.Flags().BoolVar(&proposable, "proposable", true, "only show markets with no UMA proposal yet")
 	rcmd.Flags().StringVar(&rpcURL, "rpc", "", "Polygon RPC URL (needed for MOOV2/sports UMA links)")
 	rcmd.Flags().BoolVar(&permissionless, "permissionless", false, "only show OOV2 markets (no whitelist needed)")
@@ -69,6 +72,7 @@ func run(cmd *cobra.Command, args []string) {
 
 	// ended: closed=true, floor endDate to 180 days ago, descending (most recent first)
 	// future: closed=false, endDate window from now → now+resolveWithin, ascending
+	// stale: expands EndDateMin backward to catch stale markets (endDate in past but still closed=false)
 	yes, no := true, false
 	q := gamma.MarketQuery{
 		VolumeMax: maxvol,
@@ -82,8 +86,11 @@ func run(cmd *cobra.Command, args []string) {
 		q.EndDateMin = floor
 	} else {
 		q.Closed = &no
-		// EndDateMin floors at start of today so same-day markets (endDate past but not yet closed) are included
-		q.EndDateMin = now.Truncate(24 * time.Hour).Format(time.RFC3339)
+		staleFloor := now.Truncate(24 * time.Hour)
+		if stale > 0 {
+			staleFloor = now.Add(-stale)
+		}
+		q.EndDateMin = staleFloor.Format(time.RFC3339)
 		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 	}
 
@@ -119,6 +126,14 @@ func run(cmd *cobra.Command, args []string) {
 		log.Info("no markets found")
 		return
 	}
+
+	// sort by date (ascending), then by volume (ascending)
+	sort.Slice(markets, func(i, j int) bool {
+		if markets[i].EndDate != markets[j].EndDate {
+			return markets[i].EndDate < markets[j].EndDate
+		}
+		return markets[i].VolumeNum < markets[j].VolumeNum
+	})
 
 	umaLinks := fetchUmaLinks(markets)
 

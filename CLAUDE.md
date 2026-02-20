@@ -98,11 +98,13 @@ Run commands (from `pq/`):
   - `--permissionless` — OOV2 only (no whitelist needed)
   - `--ended` — markets past end date (floors at 180 days ago), descending
   - `--resolve-within 24h` — markets ending within duration (mutually exclusive with --ended)
+  - `--stale 168h` — include markets with endDate in the past (up to duration) but still closed=false
   - `--proposable` (default true) — only show markets with no UMA proposal yet
   - `--min-volume`, `--max-volume` — volume filters
   - `--limit N` — stop after N matching results (omit to fetch all pages)
   - `--rpc <url>` — Polygon RPC for MOOV2/sports UMA link lookup
   - `-i=false` — skip interactive prompt
+  - Results sorted by endDate (asc), then volume (asc)
 - `go run ./cmd/scout/ -i` — interactive mode (prompts for filters)
 - `go run ./cmd/resolver/` — start API server on :8745
 - `go run ./cmd/wxgap/ <polymarket-event-url>` — analyze weather market timing gaps
