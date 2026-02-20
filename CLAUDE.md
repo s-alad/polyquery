@@ -69,11 +69,14 @@ polyquery/
 │   ├── cmd/
 │   │   ├── scout/main.go      # market discovery CLI
 │   │   ├── resolver/main.go   # API server skeleton (health check only)
-│   │   └── wxgap/main.go      # weather market timing analysis
+│   │   ├── wxgap/main.go      # weather market timing analysis + integration test
+│   │   ├── wxwatch/main.go    # polls WU station, fires outcomes + UMA links at day end
+│   │   └── linker/main.go     # given any Polymarket URL, prints UMA propose links
 │   ├── pkg/
 │   │   ├── gamma/             # Gamma API client
 │   │   ├── chain/             # UMA link lookup (subgraph + RPC), proposal fetching
 │   │   ├── kv/                # Badger KV cache (used by chain for RPC scan results)
+│   │   ├── sources/wx/        # Weather Underground client (Fetch, Stats, Interval, TypicalDayEnd)
 │   │   ├── store/             # SQLite via SQLC (schema/queries placeholders)
 │   │   ├── api/               # Fiber route registration (health only)
 │   │   └── utils/             # Terminal helpers (Truncate, TL, TerminalWidth)
@@ -86,6 +89,8 @@ Build commands (from `pq/`):
 - `go build ./cmd/scout/` — market scanner
 - `go build ./cmd/resolver/` — API server skeleton
 - `go build ./cmd/wxgap/` — weather timing analysis
+- `go build ./cmd/wxwatch/` — weather station poller
+- `go build ./cmd/linker/` — UMA link lookup
 - `sqlc generate` — regenerate store from SQL (once schema/queries are populated)
 
 Run commands (from `pq/`):
@@ -95,10 +100,12 @@ Run commands (from `pq/`):
   - `--resolve-within 24h` — markets ending within duration (mutually exclusive with --ended)
   - `--proposable` (default true) — only show markets with no UMA proposal yet
   - `--min-volume`, `--max-volume` — volume filters
-  - `--count N` — limit results (default 0 = all)
+  - `--limit N` — stop after N matching results (omit to fetch all pages)
   - `--rpc <url>` — Polygon RPC for MOOV2/sports UMA link lookup
   - `-i=false` — skip interactive prompt
 - `go run ./cmd/scout/ -i` — interactive mode (prompts for filters)
 - `go run ./cmd/resolver/` — start API server on :8745
 - `go run ./cmd/wxgap/ <polymarket-event-url>` — analyze weather market timing gaps
 - `go test ./cmd/wxgap/ -timeout 60s` — run integration test against real Ankara Feb 17 data
+- `go run ./cmd/wxwatch/ <polymarket-event-url>` — poll station, print outcomes + UMA links at day end
+- `go run ./cmd/linker/ <polymarket-url>` — print UMA propose links (/market/ = 1 row, /event/ = all brackets)

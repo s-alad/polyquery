@@ -1,6 +1,6 @@
 # Resolution Pipeline Architecture
 
-> **Last updated:** 2026-02-18
+> **Last updated:** 2026-02-19
 > **Status:** Bottom-up tooling complete (scout, wxgap, UMA lookup). Top-down scaffold stripped to skeletons. Pipeline/store/resolvers to be built bottom-up as real resolvers are implemented.
 
 ## Context
@@ -30,11 +30,14 @@ polyquery/
 │   ├── cmd/
 │   │   ├── scout/         # ✅ fully working market discovery CLI
 │   │   ├── resolver/      # 🔲 skeleton — health check only
-│   │   └── wxgap/         # ✅ fully working weather gap analyzer + integration test
+│   │   ├── wxgap/         # ✅ fully working weather gap analyzer + integration test
+│   │   ├── wxwatch/       # ✅ polls WU station, fires outcomes + UMA links at day end
+│   │   └── linker/        # ✅ given any Polymarket URL, prints UMA propose links
 │   ├── pkg/
 │   │   ├── gamma/         # ✅ Gamma API client
 │   │   ├── chain/         # ✅ UMA link lookup (subgraph + RPC), proposal fetching
 │   │   ├── kv/            # ✅ Badger KV cache
+│   │   ├── sources/wx/    # ✅ Weather Underground fetch/stats/interval/TypicalDayEnd
 │   │   ├── store/         # 🔲 skeleton — schema/queries placeholders
 │   │   ├── api/           # 🔲 skeleton — health route only
 │   │   └── utils/         # ✅ terminal helpers
@@ -133,3 +136,4 @@ Four operations needed:
 | 2026-02-15 | Built steps 1-7. Scout, resolver scaffold, pipeline, NBA stub, API, store |
 | 2026-02-16 | Built `pkg/chain/`: dual-path UMA link lookup (subgraph for OOV2, RPC fallback for MOOV2) |
 | 2026-02-18 | Deep work on scout + wxgap. Top-down boilerplate stripped to skeletons. pipeline, resolve, nba stub deleted. store/api/resolver cmd reduced to minimal placeholders. Bottom-up strategy going forward. |
+| 2026-02-19 | Built `wxwatch` (station poller, fires at `dayStart + TypicalDayEnd`). Built `linker` (UMA link table from any Polymarket URL). Extracted shared `pkg/sources/wx` (Fetch, Stats, Interval, TypicalDayEnd). Scout: fixed EndDateMin floor, added pagination, `--limit` flag (stops paginating early when set), semaphore-capped UMA link fetching (20 workers). HTTP client timeout bumped to 60s. |

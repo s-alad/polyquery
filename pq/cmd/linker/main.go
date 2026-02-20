@@ -51,8 +51,15 @@ func run(arg string) error {
 			return err
 		}
 		markets = []gamma.Market{*m}
+	case strings.Contains(u.Path, "/sports/"):
+		// /sports/{sport}/{event-slug} — last segment is the event slug
+		event, err := gc.GetEvent(path.Base(u.Path))
+		if err != nil {
+			return err
+		}
+		markets = event.Markets
 	default:
-		return fmt.Errorf("unrecognised URL (expected /market/ or /event/ path): %s", arg)
+		return fmt.Errorf("unrecognised URL (expected /market/, /event/, or /sports/ path): %s", arg)
 	}
 
 	tbl := table.New().

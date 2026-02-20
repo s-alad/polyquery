@@ -87,7 +87,6 @@ func run(cmd *cobra.Command, args []string) {
 		q.EndDateMax = now.Add(resolveWithin).Format(time.RFC3339)
 	}
 
-	// paginate through all results (500 per page max)
 	gc := gamma.NewClient()
 	var markets []gamma.Market
 	for {
@@ -95,31 +94,25 @@ func run(cmd *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatal("fetch failed", "err", err)
 		}
-		markets = append(markets, page...)
-		if len(page) < 500 {
+		for _, m := range page {
+			if m.ResolvedBy == "" {
+				continue
+			}
+			if proposable && !(m.UmaResolutionStatus == "" && (m.UmaResolutionStatuses == "" || m.UmaResolutionStatuses == "[]")) {
+				continue
+			}
+			if permissionless && !chain.IsOOV2(m.ResolvedBy) {
+				continue
+			}
+			markets = append(markets, m)
+		}
+		if (limit > 0 && len(markets) >= limit) || len(page) < 500 {
 			break
 		}
 		q.Offset += 500
 	}
-
-	// drop pre-UMA markets (no oracle address)
-	markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
-		return m.ResolvedBy != ""
-	})
-	if proposable {
-		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
-			// singular absent/null → proposable for standard markets
-			// plural "[]" → proposable for negRisk markets
-			return m.UmaResolutionStatus == "" && (m.UmaResolutionStatuses == "" || m.UmaResolutionStatuses == "[]")
-		})
-	}
-	if permissionless {
-		markets = lo.Filter(markets, func(m gamma.Market, _ int) bool {
-			return chain.IsOOV2(m.ResolvedBy)
-		})
-	}
-	if top > 0 && len(markets) > top {
-		markets = markets[:top]
+	if limit > 0 && len(markets) > limit {
+		markets = markets[:limit]
 	}
 
 	if len(markets) == 0 {

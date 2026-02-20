@@ -92,15 +92,20 @@ How it works:
 ### `scout` — Market discovery
 
 ```bash
-# All permissionless (OOV2) proposable markets ending today (includes same-day markets past endDate but still open)
-go run ./cmd/scout/ --permissionless --min-volume 0 -i=false
+# All permissionless (OOV2) proposable markets ending in next 36h (includes same-day markets)
+go run ./cmd/scout/ --permissionless --min-volume 0 -i=false --resolve-within 36h
+
+# Limit to first 20 matching results (stops fetching early — faster for quick scans)
+go run ./cmd/scout/ --permissionless --min-volume 0 -i=false --resolve-within 36h --limit 20
 
 # All proposable markets ended in last 180 days (audit / catch stragglers)
 go run ./cmd/scout/ --ended --min-volume 0 -i=false
 
 # Same but show all including already-proposed (to audit competition)
-go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false --count 50
+go run ./cmd/scout/ --ended --min-volume 0 -i=false --proposable=false --limit 50
 ```
+
+**`--limit N`**: stops paginating as soon as N markets match all filters. Fast for quick scans. Without `--limit`, scout paginates all pages (can be hundreds of results).
 
 **Note:** Scout floors `EndDateMin` to start-of-day (not now) so markets whose stated `endDate` has passed but are still `closed=false` remain visible. The authoritative "done" signal is `closed=true`, not `endDate`.
 
