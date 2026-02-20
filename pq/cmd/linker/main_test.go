@@ -8,19 +8,9 @@ import (
 	"github.com/salad/polyquery/pq/pkg/gamma"
 )
 
-// TestFluWeek6Links validates UMA link resolution against the flu hospitalization week 6 event.
-// Expected links verified against oracle.uma.xyz.
+// TestFluWeek6Links verifies UMA links for the flu hospitalization rate week 6 2026 event.
+// Known-good links from subgraph lookups — these are immutable on-chain data.
 func TestFluWeek6Links(t *testing.T) {
-	gc := gamma.NewClient()
-	uma := chain.NewUmaClient("")
-	ctx := context.Background()
-
-	event, err := gc.GetEvent("flu-hospitalization-rate-week-6-2026")
-	if err != nil {
-		t.Fatal("GetEvent:", err)
-	}
-
-	// question → expected UMA link
 	want := map[string]string{
 		"Will the U.S. flu hospitalization rate per 100,000 in Week 6 be less than 50?":      "https://oracle.uma.xyz/propose?project=Polymarket&transactionHash=0xebd750e9bf9297e3fb628115a87c7da0f09d3afb83c23ae8f84991758c83e8c0&eventIndex=141",
 		"Will the U.S. flu hospitalization rate per 100,000 in Week 6 be between 60 and 70?": "https://oracle.uma.xyz/propose?project=Polymarket&transactionHash=0x1b6faaf9cd261f974b607475513cf0b040beb2f083c83567d6cf5db86c07eb57&eventIndex=314",
@@ -30,23 +20,31 @@ func TestFluWeek6Links(t *testing.T) {
 		"Will the U.S. flu hospitalization rate per 100,000 in Week 6 be 90 or more?":        "https://oracle.uma.xyz/propose?project=Polymarket&transactionHash=0xae72e07699af286ae4140e799b53f71306e0a0d2d482851ad5a9106545f909ad&eventIndex=254",
 	}
 
+	event, err := gamma.NewClient().GetEvent("flu-hospitalization-rate-week-6-2026")
+	if err != nil {
+		t.Fatal("GetEvent:", err)
+	}
 	if len(event.Markets) != len(want) {
 		t.Fatalf("market count: got %d want %d", len(event.Markets), len(want))
 	}
 
+	uma := chain.NewUmaClient("")
+	defer uma.Close()
+	ctx := context.Background()
+
 	for _, m := range event.Markets {
 		expected, ok := want[m.Question]
 		if !ok {
-			t.Errorf("unexpected market: %q", m.Question)
+			t.Errorf("unexpected market: %s", m.Question)
 			continue
 		}
 		link, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID)
 		if err != nil {
-			t.Errorf("%q: UmaLink error: %v", m.Question, err)
+			t.Errorf("%s: UmaLink error: %v", m.Question, err)
 			continue
 		}
 		if link != expected {
-			t.Errorf("%q:\n  got  %s\n  want %s", m.Question, link, expected)
+			t.Errorf("%s:\n  got  %s\n  want %s", m.Question, link, expected)
 		}
 	}
 }
