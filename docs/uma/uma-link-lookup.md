@@ -66,27 +66,50 @@ To find a market in the subgraph: hex-encode `"market_id: {gammaID}"` and use `a
 }
 ```
 
-## Our Solution (`pkg/chain/uma.go`)
+## Our Solution (`pkg/chain/`)
+
+### UMA Links (subgraph + RPC fallback)
 
 Two-path lookup based on which oracle contract the adapter uses:
 
 ```
 Gamma market.ResolvedBy
         │
-        ├── v2, v3, or legacy ─→ Subgraph lookup (instant, ~200ms)
+        ├── v2, v3, or legacy ─→ Subgraph lookup (~3-4s per query, cached after first hit)
         │                         Query ancillaryData_contains with hex(market_id)
         │                         Returns requestHash + requestLogIndex
         │
-        └── sports adapter ───→ RPC log scan (slow, ~30-40s)
+        └── sports adapter ───→ RPC log scan (~30-40s, cached after first hit)
                                   FilterLogs for QuestionInitialized event
-                                  Chunked 10K blocks backward from head
+                                  Chunked 10K blocks forward from floor
                                   Returns txHash + log.Index
 ```
 
-Both paths build the same URL format:
+Both paths build the same URL format and cache results in Badger (immutable on-chain data):
 ```
 oracle.uma.xyz/propose?project=Polymarket&transactionHash={hash}&eventIndex={logIndex}
 ```
+
+Linker and scout fetch links in **parallel** (all markets concurrently). Performance:
+- 6-market event uncached: ~4s (parallel subgraph queries)
+- 6-market event cached: ~0.1s (Badger hit)
+
+### Direct Contract Reads (for proposing)
+
+`getQuestion(bytes32)` on any UmaCtfAdapter returns `QuestionData` in a single RPC call (~100ms):
+
+```go
+chain.GetQuestion(ctx, ethClient, adapter, questionKey) → *QuestionData{
+    RequestTimestamp, Reward, ProposalBond, Resolved, Paused, AncillaryData, Creator, RewardToken
+}
+```
+
+**Key for getQuestion():**
+- negRisk markets (weather, stocks): use `market.NegRiskRequestID`
+- non-negRisk (sports, standalone): use `market.QuestionID`
+- Helper: `chain.QuestionKey(market.NegRisk, market.QuestionID, market.NegRiskRequestID)`
+
+This enables direct `proposePrice()` calls without subgraph dependency — all params available from the returned struct.
 
 ### Why two paths?
 
@@ -109,21 +132,28 @@ UMA's oracle page expects the **block-level** log index (the position of the log
 
 Both are block-level. Confirmed working with eventIndex=132 for the Stony Brook market.
 
-## API (`pkg/chain/uma.go`)
+## API (`pkg/chain/`)
 
 ```go
 client := chain.NewUmaClient("https://polygon-rpc.example.com")
 defer client.Close()
 
 // UmaLink — single market propose URL (fields from gamma.Market)
+// Results cached in Badger (subgraph and RPC paths both cache)
 link, err := client.UmaLink(ctx, market.ID, market.ResolvedBy, market.QuestionID)
 
 // FetchProposals — batch proposal data for a slice of market IDs (OOV2 subgraph only)
 proposals := client.FetchProposals(ctx, []string{market.ID, ...})
 // returns map[int]chain.Proposal{Timestamp int64, Proposer string}
+
+// GetQuestion — direct adapter contract read (for proposing, no subgraph needed)
+key := chain.QuestionKey(market.NegRisk, market.QuestionID, market.NegRiskRequestID)
+qd, err := chain.GetQuestion(ctx, ethClient, market.ResolvedBy, key)
+// qd.RequestTimestamp, qd.AncillaryData, qd.Resolved, qd.ProposalBond, etc.
 ```
 
-RPC URL is only needed for MOOV2/sports markets. OOV2 markets use the subgraph (no RPC).
+RPC URL is only needed for MOOV2/sports UMA links. OOV2 markets use the subgraph (no RPC).
+`GetQuestion()` needs an `ethclient.Client` for any adapter type.
 
 ### Internal structure
 
@@ -138,17 +168,19 @@ subgraphLink          FetchProposals   ← each builds query via marketQuery(), 
 - `subgraphLink` — OOV2 path: fetches `requestHash + requestLogIndex`, returns propose URL
 - `rpcLink` — MOOV2 fallback: chunked `FilterLogs` scan for `QuestionInitialized`
 
-## Alternative URL Format
+## Alternative URL Format (Legacy — Not Recommended)
 
 UMA also supports a parameter-based URL (no tx hash needed):
 
 ```
-oracle.uma.xyz/propose?chainId=137&oracleType=Optimistic+Oracle+V2
+oracle.uma.xyz/propose?chainId=137&oracleType=OptimisticV2
   &requester={adapter}&timestamp={requestTimestamp}
   &identifier=YES_OR_NO_QUERY&ancillaryData={hexData}
 ```
 
-All params available from the subgraph. Not currently implemented but useful as a fallback.
+Valid `oracleType` values: `Optimistic` (V1), `OptimisticV2` (V2), `Skinny`, `ManagedV2` (MOOV2).
+
+All params available from `getQuestion()`. However this is labeled "legacy" in the UMA dapp source — it only works if the dapp has already cached the query from its own subgraph. The transaction hash format is the primary/reliable path.
 
 ## Ancillary Data Structure
 

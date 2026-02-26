@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"sync"
 	"testing"
 
 	"github.com/salad/polyquery/pq/pkg/chain"
@@ -32,19 +33,35 @@ func TestFluWeek6Links(t *testing.T) {
 	defer uma.Close()
 	ctx := context.Background()
 
-	for _, m := range event.Markets {
-		expected, ok := want[m.Question]
+	type result struct {
+		question string
+		link     string
+		err      error
+	}
+	results := make([]result, len(event.Markets))
+	var wg sync.WaitGroup
+	for i, m := range event.Markets {
+		wg.Add(1)
+		go func(idx int, m gamma.Market) {
+			defer wg.Done()
+			link, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID)
+			results[idx] = result{m.Question, link, err}
+		}(i, m)
+	}
+	wg.Wait()
+
+	for _, r := range results {
+		expected, ok := want[r.question]
 		if !ok {
-			t.Errorf("unexpected market: %s", m.Question)
+			t.Errorf("unexpected market: %s", r.question)
 			continue
 		}
-		link, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID)
-		if err != nil {
-			t.Errorf("%s: UmaLink error: %v", m.Question, err)
+		if r.err != nil {
+			t.Errorf("%s: UmaLink error: %v", r.question, r.err)
 			continue
 		}
-		if link != expected {
-			t.Errorf("%s:\n  got  %s\n  want %s", m.Question, link, expected)
+		if r.link != expected {
+			t.Errorf("%s:\n  got  %s\n  want %s", r.question, r.link, expected)
 		}
 	}
 }

@@ -116,8 +116,16 @@ func (u *UmaClient) rpcLink(ctx context.Context, questionID, adapter string) (st
 	}
 }
 
-// subgraphLink queries the Goldsky subgraph for a market's request tx hash + log index
+// subgraphLink queries the Goldsky subgraph for a market's request tx hash + log index.
+// Results are cached in Badger — UMA link data is immutable on-chain.
 func (u *UmaClient) subgraphLink(ctx context.Context, marketID string) (string, error) {
+	cacheKey := "sg:" + marketID
+	if u.cache != nil {
+		if val, err := u.cache.Get(cacheKey); val != nil && err == nil {
+			return string(val), nil
+		}
+	}
+
 	q := marketQuery(`{ optimisticPriceRequests(where:{ancillaryData_contains:"%s"} first:1) { requestHash requestLogIndex } }`, marketID)
 	var result struct {
 		Data struct {
@@ -134,5 +142,9 @@ func (u *UmaClient) subgraphLink(ctx context.Context, marketID string) (string, 
 		return "", fmt.Errorf("market %s not found in subgraph", marketID)
 	}
 	r := result.Data.Requests[0]
-	return fmt.Sprintf(umaBase, r.Hash, r.LogIndex), nil
+	link := fmt.Sprintf(umaBase, r.Hash, r.LogIndex)
+	if u.cache != nil {
+		u.cache.Set(cacheKey, []byte(link))
+	}
+	return link, nil
 }

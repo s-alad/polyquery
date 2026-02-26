@@ -15,3 +15,11 @@ config.json
 
 # pq build artifacts
 bin/
+pq/scout
+pq/linker
+pq/resolver
+pq/wxgap
+pq/wxwatch
+
+# badger kv cache (created relative to CWD by tests/tools)
+**/pkg/kv/cache/

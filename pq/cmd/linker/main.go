@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/lipgloss/table"
@@ -33,6 +34,7 @@ func run(arg string) error {
 	}
 	gc := gamma.NewClient()
 	uma := chain.NewUmaClient("")
+	defer uma.Close()
 	ctx := context.Background()
 
 	var markets []gamma.Market
@@ -71,10 +73,24 @@ func run(arg string) error {
 		tbl.Width(w)
 	}
 
-	for _, m := range markets {
+	// fetch UMA links in parallel
+	links := make([]string, len(markets))
+	var wg sync.WaitGroup
+	for i, m := range markets {
+		wg.Add(1)
+		go func(idx int, m gamma.Market) {
+			defer wg.Done()
+			if l, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID); err == nil {
+				links[idx] = l
+			}
+		}(i, m)
+	}
+	wg.Wait()
+
+	for i, m := range markets {
 		link := "-"
-		if l, err := uma.UmaLink(ctx, m.ID, m.ResolvedBy, m.QuestionID); err == nil {
-			link = utils.TL(l, l)
+		if links[i] != "" {
+			link = utils.TL(links[i], links[i])
 		}
 		tbl.Row(m.Question, link)
 	}

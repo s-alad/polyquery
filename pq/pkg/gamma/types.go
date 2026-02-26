@@ -26,6 +26,7 @@ type Market struct {
 	UmaReward             string  `json:"umaReward"`
 	ResolvedBy            string  `json:"resolvedBy"`
 	NegRisk               bool    `json:"negRisk"`
+	NegRiskRequestID      string  `json:"negRiskRequestID"`
 }
 
 // https://docs.polymarket.com/api-reference/markets/list-markets.md
